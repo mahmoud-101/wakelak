@@ -133,47 +133,37 @@ function withTimeout<T>(promise: Promise<T>, label: string, ms = INVOKE_TIMEOUT_
         );
  
        if (error) throw error;
-       
-       if (data?.access_token) {
-         // Store in profiles
-         const { data: { user } } = await supabase.auth.getUser();
-         if (user) {
-          // Store token in secure_credentials (server-side only)
-          await supabase
-            .from("secure_credentials")
-            .upsert({
-              user_id: user.id,
-              github_token: data.access_token,
-            });
-          
-          // Store non-sensitive data in profiles
-           await supabase
-             .from("profiles")
-             .update({
-               github_username: data.user.login,
-               github_connected_at: new Date().toISOString(),
-             })
-             .eq("id", user.id);
-         }
-         
-         setIsConnected(true);
-         setGithubUsername(data.user.login);
+
+        if (data?.ok) {
+          const username = data.github_username ?? data?.user?.login ?? null;
+
+          setIsConnected(true);
+          setGithubUsername(username);
         await fetchUserRepos();
          
          toast({
            title: "تم الربط بنجاح! ✓",
-           description: `تم ربط حسابك بـ GitHub (@${data.user.login})`,
+            description: username
+              ? `تم ربط حسابك بـ GitHub (@${username})`
+              : "تم ربط حسابك بـ GitHub",
          });
          
          // Clean URL
          window.history.replaceState({}, "", window.location.pathname);
+        } else {
+          throw new Error(typeof data?.error === "string" ? data.error : "Failed to connect");
        }
      } catch (error) {
        console.error("GitHub OAuth error:", error);
        toast({
          variant: "destructive",
          title: "فشل الربط",
-         description: "حدث خطأ أثناء الربط بـ GitHub. حاول مرة أخرى.",
+          description:
+            error instanceof Error
+              ? (error.message.includes("Timeout")
+                  ? "الربط استغرق وقتًا طويلاً بدون استجابة. حاول مرة أخرى."
+                  : error.message)
+              : "حدث خطأ أثناء الربط بـ GitHub. حاول مرة أخرى.",
        });
      } finally {
        setIsConnecting(false);

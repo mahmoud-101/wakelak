@@ -15,12 +15,21 @@
    const [isConnected, setIsConnected] = useState(false);
    const [githubUsername, setGithubUsername] = useState<string | null>(null);
    const [repos, setRepos] = useState<GitHubRepo[]>([]);
+   const [isAuthenticated, setIsAuthenticated] = useState(false);
    const { toast } = useToast();
  
    // Check if user is connected to GitHub
    useEffect(() => {
-     checkGitHubConnection();
+     checkAuthentication();
    }, []);
+
+   const checkAuthentication = async () => {
+     const { data: { user } } = await supabase.auth.getUser();
+     setIsAuthenticated(!!user);
+     if (user) {
+       await checkGitHubConnection();
+     }
+   };
  
    // Handle OAuth callback
    useEffect(() => {
@@ -195,5 +204,6 @@
      isConnected,
      githubUsername,
      repos,
+     isAuthenticated,
    };
  }

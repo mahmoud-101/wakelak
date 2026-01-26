@@ -63,3 +63,6 @@ verify_jwt = false
 
 [functions.fix-errors]
 verify_jwt = false
+
+[functions.github-oauth]
+verify_jwt = false

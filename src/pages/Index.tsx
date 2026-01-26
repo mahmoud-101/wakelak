@@ -28,9 +28,9 @@ const Index = () => {
   return (
     <div className="flex min-h-screen flex-col bg-background" dir="rtl">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+      <header className="border-b border-border bg-card/80 backdrop-blur-md shadow-glow">
         <div className="container mx-auto flex h-16 items-center gap-3 px-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent shadow-glow">
             <Bot className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
@@ -38,7 +38,10 @@ const Index = () => {
             <p className="text-xs text-muted-foreground">مساعدك الشخصي في تطوير المشاريع</p>
           </div>
           <div className="mr-auto">
-            <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+            <div className="relative">
+              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+              <div className="absolute inset-0 h-5 w-5 text-primary animate-ping opacity-20" />
+            </div>
           </div>
           <Button variant="outline" size="sm" onClick={() => navigate("/integrations")}>
             <Link2 className="ml-2 h-4 w-4" />
@@ -60,7 +63,7 @@ const Index = () => {
         <div className="container mx-auto max-w-4xl px-4 py-8">
           {messages.length === 0 ? (
             <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
-              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 shadow-glow">
                 <Bot className="h-10 w-10 text-primary" />
               </div>
               <h2 className="mb-3 text-2xl font-bold text-foreground">مرحباً بك!</h2>
@@ -68,10 +71,10 @@ const Index = () => {
                 أنا وكيل التطوير الذكي. أساعدك في تطوير مشروعك، كتابة الكود، وحل المشاكل البرمجية.
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Card className="cursor-pointer p-4 transition-colors hover:bg-accent/50" onClick={() => setInput("كيف أبني نظام سلة تسوق؟")}>
+                <Card className="cursor-pointer p-4 transition-all hover:shadow-glow hover:border-primary/50" onClick={() => setInput("كيف أبني نظام سلة تسوق؟")}>
                   <p className="text-sm text-foreground">كيف أبني نظام سلة تسوق؟</p>
                 </Card>
-                <Card className="cursor-pointer p-4 transition-colors hover:bg-accent/50" onClick={() => setInput("ما هي أفضل الممارسات في React؟")}>
+                <Card className="cursor-pointer p-4 transition-all hover:shadow-glow hover:border-primary/50" onClick={() => setInput("ما هي أفضل الممارسات في React؟")}>
                   <p className="text-sm text-foreground">ما هي أفضل الممارسات في React؟</p>
                 </Card>
               </div>
@@ -81,11 +84,11 @@ const Index = () => {
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   {msg.role === "assistant" && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 shadow-glow">
                       <Bot className="h-5 w-5 text-primary" />
                     </div>
                   )}
-                  <Card className={`max-w-[80%] p-4 ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                  <Card className={`max-w-[80%] p-4 ${msg.role === "user" ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-glow" : "bg-card border-primary/20"}`}>
                     {msg.role === "user" ? (
                       <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                     ) : (

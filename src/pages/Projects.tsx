@@ -1,6 +1,6 @@
  import { useState, useEffect } from "react";
  import { useNavigate } from "react-router-dom";
- import { Plus, Folder, LogOut, Github, Clock, Trash2 } from "lucide-react";
+import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, Settings } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -97,10 +97,16 @@
              <Folder className="h-6 w-6 text-primary" />
              <h1 className="text-lg font-bold">مشاريعي</h1>
            </div>
-           <Button variant="ghost" size="sm" onClick={signOut}>
-             <LogOut className="ml-2 h-4 w-4" />
-             تسجيل الخروج
-           </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/database")}>
+              <DatabaseIcon className="ml-2 h-4 w-4" />
+              قاعدة البيانات
+            </Button>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="ml-2 h-4 w-4" />
+              تسجيل الخروج
+            </Button>
+          </div>
          </div>
        </header>
  

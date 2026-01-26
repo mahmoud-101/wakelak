@@ -1,6 +1,6 @@
  import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Save, RefreshCw, Github, FileCode, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, Github, FileCode, AlertCircle, Eye, EyeOff, History, Terminal as TerminalIcon } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Card } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { CodePreview } from "@/components/CodePreview";
    const [code, setCode] = useState("");
    const [errorInput, setErrorInput] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [showTerminal, setShowTerminal] = useState(false);
  
    const handleConnect = () => {
      if (owner && repo) {
@@ -80,6 +81,10 @@ import { CodePreview } from "@/components/CodePreview";
            </Button>
           <Button variant="ghost" size="sm" onClick={() => navigate("/projects")} className="mr-2">
             المشاريع
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/history", { state: { projectId: project?.id } })}>
+            <History className="ml-2 h-4 w-4" />
+            السجل
           </Button>
            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
              <FileCode className="h-6 w-6 text-primary-foreground" />
@@ -152,9 +157,13 @@ import { CodePreview } from "@/components/CodePreview";
                   <Button size="sm" variant="outline" onClick={() => setShowPreview(!showPreview)}>
                     {showPreview ? <EyeOff className="ml-2 h-4 w-4" /> : <Eye className="ml-2 h-4 w-4" />}
                     {showPreview ? "إخفاء المعاينة" : "معاينة"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowTerminal(!showTerminal)}>
+                    <TerminalIcon className="ml-2 h-4 w-4" />
+                    Terminal
                    </Button>
                  </div>
-                <div className="flex-1 flex gap-2">
+                <div className={`flex gap-2 ${showTerminal ? 'h-[calc(100%-200px)]' : 'flex-1'}`}>
                   <div className={showPreview ? "flex-1" : "w-full"}>
                    <Editor
                      height="100%"
@@ -178,6 +187,12 @@ import { CodePreview } from "@/components/CodePreview";
                     </div>
                   )}
                  </div>
+                {showTerminal && (
+                  <div className="h-[200px] border-t border-border bg-muted p-4 font-mono text-sm text-primary">
+                    <div className="mb-2">$ lovable@dev:~</div>
+                    <div className="text-muted-foreground">Terminal جاهز للاستخدام...</div>
+                  </div>
+                )}
                  <div className="border-t border-border bg-card/50 p-3">
                    <div className="flex gap-2">
                      <Textarea

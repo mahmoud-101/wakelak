@@ -8,6 +8,8 @@ import Integrations from "./pages/Integrations";
 import Editor from "./pages/Editor";
 import Auth from "./pages/Auth";
 import Projects from "./pages/Projects";
+import Database from "./pages/Database";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/projects" element={<Projects />} />
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/editor" element={<Editor />} />
+          <Route path="/database" element={<Database />} />
+          <Route path="/history" element={<History />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -11,6 +11,16 @@
    try {
     const { action, code, token } = await req.json();
  
+      if (action === "get_client_id") {
+        // Return GitHub Client ID for OAuth flow
+        return new Response(
+          JSON.stringify({
+            client_id: Deno.env.get("GITHUB_CLIENT_ID"),
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
      if (action === "exchange") {
        // Exchange code for access token
        const tokenResp = await fetch("https://github.com/login/oauth/access_token", {

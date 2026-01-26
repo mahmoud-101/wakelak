@@ -1,4 +1,5 @@
  import { useState, useCallback } from "react";
+import { useEffect } from "react";
  import { useToast } from "@/hooks/use-toast";
  import { supabase } from "@/integrations/supabase/client";
  
@@ -9,11 +10,6 @@
    const [isLoading, setIsLoading] = useState(false);
    const [githubContext, setGithubContext] = useState<any>(null);
    const { toast } = useToast();
-   
-   // Load GitHub context on mount
-   useState(() => {
-     loadGitHubContext();
-   });
    
    const loadGitHubContext = async () => {
      const { data: { user } } = await supabase.auth.getUser();
@@ -32,6 +28,11 @@
        });
      }
    };
+
+  // Load GitHub context on mount
+  useEffect(() => {
+    loadGitHubContext();
+  }, []);
  
    const sendMessage = useCallback(async (input: string) => {
      const userMsg: Message = { role: "user", content: input };

@@ -122,10 +122,13 @@
      }
    };
  
-   const connectGitHub = async () => {
+    const connectGitHub = async () => {
+      setIsConnecting(true);
+      
      const { data: { user } } = await supabase.auth.getUser();
      
      if (!user) {
+        setIsConnecting(false);
        toast({
          variant: "destructive",
          title: "تسجيل الدخول مطلوب",
@@ -134,21 +137,30 @@
        return;
      }
      
-     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-     if (!clientId) {
+      try {
+        // Get GitHub Client ID from edge function
+        const { data, error } = await supabase.functions.invoke("github-oauth", {
+          body: { action: "get_client_id" },
+        });
+        
+        if (error || !data?.client_id) {
+          throw new Error("Failed to get GitHub Client ID");
+        }
+        
+        const redirectUri = `${window.location.origin}/integrations`;
+        const scope = "repo,user,read:org";
+        const state = user.id;
+        
+        window.location.href = `https://github.com/login/oauth/authorize?client_id=${data.client_id}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+      } catch (error) {
+        console.error("Failed to start GitHub OAuth:", error);
+        setIsConnecting(false);
        toast({
          variant: "destructive",
-         title: "خطأ في الإعداد",
-         description: "GitHub Client ID غير متوفر",
+          title: "فشل الربط",
+          description: "حدث خطأ أثناء بدء عملية الربط. حاول مرة أخرى.",
        });
-       return;
      }
-     
-     const redirectUri = `${window.location.origin}/integrations`;
-     const scope = "repo,user,read:org";
-     const state = user.id;
-     
-     window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
    };
    
    const disconnectGitHub = async () => {

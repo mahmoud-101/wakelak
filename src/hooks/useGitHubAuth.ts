@@ -125,6 +125,18 @@ function withTimeout<T>(promise: Promise<T>, label: string, ms = INVOKE_TIMEOUT_
      setIsConnecting(true);
      
      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast({
+            variant: "destructive",
+            title: "تسجيل الدخول مطلوب",
+            description: "لا يمكن إكمال ربط GitHub بدون تسجيل الدخول داخل التطبيق. سجّل دخول ثم أعد المحاولة.",
+          });
+          // Clean URL (avoid retry loop)
+          window.history.replaceState({}, "", window.location.pathname);
+          return;
+        }
+
         const { data, error } = await withTimeout(
           supabase.functions.invoke("github-oauth", {
             body: { action: "exchange", code },
@@ -162,7 +174,9 @@ function withTimeout<T>(promise: Promise<T>, label: string, ms = INVOKE_TIMEOUT_
             error instanceof Error
               ? (error.message.includes("Timeout")
                   ? "الربط استغرق وقتًا طويلاً بدون استجابة. حاول مرة أخرى."
-                  : error.message)
+                  : error.message.includes("غير مصرح")
+                    ? "لا يمكن إكمال الربط لأنك غير مسجّل دخول داخل التطبيق. سجّل دخول ثم حاول مرة أخرى."
+                    : error.message)
               : "حدث خطأ أثناء الربط بـ GitHub. حاول مرة أخرى.",
        });
      } finally {

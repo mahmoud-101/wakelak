@@ -57,3 +57,9 @@
  
  [functions.dev-chat]
  verify_jwt = false
+
+[functions.github-sync]
+verify_jwt = false
+
+[functions.fix-errors]
+verify_jwt = false

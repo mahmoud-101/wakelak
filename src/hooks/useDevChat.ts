@@ -1,12 +1,37 @@
  import { useState, useCallback } from "react";
  import { useToast } from "@/hooks/use-toast";
+ import { supabase } from "@/integrations/supabase/client";
  
  type Message = { role: "user" | "assistant"; content: string };
  
  export function useDevChat() {
    const [messages, setMessages] = useState<Message[]>([]);
    const [isLoading, setIsLoading] = useState(false);
+   const [githubContext, setGithubContext] = useState<any>(null);
    const { toast } = useToast();
+   
+   // Load GitHub context on mount
+   useState(() => {
+     loadGitHubContext();
+   });
+   
+   const loadGitHubContext = async () => {
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return;
+     
+     const { data: profile } = await supabase
+       .from("profiles")
+       .select("github_token, github_username")
+       .eq("id", user.id)
+       .single();
+     
+     if (profile?.github_token) {
+       setGithubContext({
+         token: profile.github_token,
+         username: profile.github_username,
+       });
+     }
+   };
  
    const sendMessage = useCallback(async (input: string) => {
      const userMsg: Message = { role: "user", content: input };
@@ -35,6 +60,13 @@
            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
          },
          body: JSON.stringify({ messages: [...messages, userMsg] }),
+         body: JSON.stringify({ 
+           messages: [...messages, userMsg],
+           githubContext: githubContext ? {
+             connected: true,
+             username: githubContext.username,
+           } : { connected: false }
+         }),
        });
  
        if (!resp.ok) {

@@ -131,12 +131,53 @@ export type Database = {
           },
         ]
       }
+      github_repos: {
+        Row: {
+          created_at: string | null
+          default_branch: string | null
+          id: string
+          last_synced_at: string | null
+          repo_name: string
+          repo_owner: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          default_branch?: string | null
+          id?: string
+          last_synced_at?: string | null
+          repo_name: string
+          repo_owner: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          default_branch?: string | null
+          id?: string
+          last_synced_at?: string | null
+          repo_name?: string
+          repo_owner?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "github_repos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string | null
           email: string | null
           full_name: string | null
+          github_connected_at: string | null
+          github_token: string | null
+          github_username: string | null
           id: string
           updated_at: string | null
         }
@@ -145,6 +186,9 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
+          github_connected_at?: string | null
+          github_token?: string | null
+          github_username?: string | null
           id: string
           updated_at?: string | null
         }
@@ -153,6 +197,9 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
+          github_connected_at?: string | null
+          github_token?: string | null
+          github_username?: string | null
           id?: string
           updated_at?: string | null
         }

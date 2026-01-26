@@ -9,11 +9,11 @@
    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
  
    try {
-     const { messages } = await req.json();
+     const { messages, githubContext } = await req.json();
      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
  
-     const systemPrompt = `أنت مساعد تطوير ذكي متخصص في تطوير مشاريع التجارة الإلكترونية. مهمتك هي:
+     let systemPrompt = `أنت مساعد تطوير ذكي متخصص في تطوير مشاريع التجارة الإلكترونية. مهمتك هي:
  
  1. **مساعدة المطورين في كتابة الكود**: 
     - تقديم أمثلة واضحة للكود بلغات مثل TypeScript, React, JavaScript
@@ -47,6 +47,15 @@
 - Lovable Cloud: PostgreSQL، Authentication، Edge Functions، Storage
 
 قدم إجابات واضحة ومفيدة ومباشرة. استخدم أمثلة عملية عند الشرح. عندما يسأل المستخدم عن التكاملات، وجهه لصفحة التكاملات للحصول على معلومات تفصيلية.`;
+     
+     // إضافة سياق GitHub إذا كان متصلاً
+     if (githubContext?.connected) {
+       systemPrompt += `\n\n**معلومات GitHub:**
+ - المستخدم متصل بـ GitHub باسم: @${githubContext.username}
+ - يمكنك الوصول لملفات المشروع عبر GitHub API
+ - عند طلب التعديل على الكود، يمكنك قراءة الملفات الحالية وفهمها
+ - استخدم هذا السياق لتقديم إجابات أكثر دقة ومخصصة للمشروع`;
+     }
  
      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
        method: "POST",

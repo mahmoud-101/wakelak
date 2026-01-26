@@ -9,8 +9,7 @@
    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
  
    try {
-     const { action, code } = await req.json();
-     const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN");
+    const { action, code, token } = await req.json();
  
      if (action === "exchange") {
        // Exchange code for access token
@@ -54,9 +53,11 @@
  
      if (action === "repos") {
        // List user repositories
+      if (!token) throw new Error("GitHub token is required");
+      
        const reposResp = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", {
          headers: {
-           Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Authorization: `Bearer ${token}`,
            Accept: "application/vnd.github.v3+json",
          },
        });

@@ -9,10 +9,9 @@
    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
  
    try {
-     const { action, owner, repo, path, content, branch = "main" } = await req.json();
-     const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN");
+    const { action, owner, repo, path, content, branch = "main", token } = await req.json();
      
-     if (!GITHUB_TOKEN) throw new Error("GITHUB_TOKEN is not configured");
+    if (!token) throw new Error("GitHub token is required");
  
      const baseUrl = `https://api.github.com/repos/${owner}/${repo}`;
  
@@ -20,7 +19,7 @@
        // Get repository tree
        const treeResp = await fetch(`${baseUrl}/git/trees/${branch}?recursive=1`, {
          headers: {
-           Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Authorization: `Bearer ${token}`,
            Accept: "application/vnd.github.v3+json",
          },
        });
@@ -37,7 +36,7 @@
        // Read file content
        const fileResp = await fetch(`${baseUrl}/contents/${path}?ref=${branch}`, {
          headers: {
-           Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Authorization: `Bearer ${token}`,
            Accept: "application/vnd.github.v3+json",
          },
        });
@@ -59,7 +58,7 @@
        try {
          const existingResp = await fetch(`${baseUrl}/contents/${path}?ref=${branch}`, {
            headers: {
-             Authorization: `Bearer ${GITHUB_TOKEN}`,
+            Authorization: `Bearer ${token}`,
              Accept: "application/vnd.github.v3+json",
            },
          });
@@ -73,7 +72,7 @@
        const writeResp = await fetch(`${baseUrl}/contents/${path}`, {
          method: "PUT",
          headers: {
-           Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Authorization: `Bearer ${token}`,
            Accept: "application/vnd.github.v3+json",
            "Content-Type": "application/json",
          },

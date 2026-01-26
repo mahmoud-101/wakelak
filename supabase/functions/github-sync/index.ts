@@ -1,4 +1,5 @@
  import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  
  const corsHeaders = {
    "Access-Control-Allow-Origin": "*",
@@ -9,9 +10,80 @@
    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
  
    try {
-    const { action, owner, repo, path, content, branch = "main", token } = await req.json();
+    // Authenticate user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "غير مصرح" }), { 
+        status: 401, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.error("Auth error:", authError);
+      return new Response(JSON.stringify({ error: "غير مصرح" }), { 
+        status: 401, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
+
+    // Fetch GitHub token from secure storage
+    const { data: credentials, error: credError } = await supabaseClient
+      .from("secure_credentials")
+      .select("github_token")
+      .eq("user_id", user.id)
+      .single();
      
-    if (!token) throw new Error("GitHub token is required");
+    if (credError || !credentials?.github_token) {
+      return new Response(JSON.stringify({ error: "يجب ربط حساب GitHub أولاً" }), { 
+        status: 400, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
+
+    const token = credentials.github_token;
+
+    // Validate and parse input
+    const { action, owner, repo, path, content, branch = "main" } = await req.json();
+    
+    // Validate action
+    if (!["list", "read", "write"].includes(action)) {
+      return new Response(JSON.stringify({ error: "عملية غير صحيحة" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate owner and repo
+    if (!owner || !repo || !/^[a-zA-Z0-9-]+$/.test(owner) || !/^[a-zA-Z0-9-_.]+$/.test(repo)) {
+      return new Response(JSON.stringify({ error: "اسم المستودع غير صحيح" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate path (no directory traversal)
+    if (path && (path.includes("..") || path.startsWith("/"))) {
+      return new Response(JSON.stringify({ error: "مسار الملف غير صحيح" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate content size (max 1MB)
+    if (content && content.length > 1000000) {
+      return new Response(JSON.stringify({ error: "حجم المحتوى كبير جداً" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
  
      const baseUrl = `https://api.github.com/repos/${owner}/${repo}`;
  
@@ -95,7 +167,7 @@
      throw new Error("Invalid action");
    } catch (e) {
      console.error("GitHub sync error:", e);
-     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "خطأ غير معروف" }), {
+    return new Response(JSON.stringify({ error: "حدث خطأ أثناء معالجة طلبك" }), {
        status: 500,
        headers: { ...corsHeaders, "Content-Type": "application/json" },
      });

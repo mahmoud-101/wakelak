@@ -17,13 +17,13 @@ import { useEffect } from "react";
      
      const { data: profile } = await supabase
        .from("profiles")
-       .select("github_token, github_username")
+      .select("github_username")
        .eq("id", user.id)
        .single();
      
-     if (profile?.github_token) {
+    if (profile?.github_username) {
        setGithubContext({
-         token: profile.github_token,
+        connected: true,
          username: profile.github_username,
        });
      }

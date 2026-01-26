@@ -117,8 +117,8 @@ import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, 
              <p className="text-muted-foreground">إدارة مشاريعك على GitHub</p>
            </div>
            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-             <DialogTrigger asChild>
-               <Button>
+              <DialogTrigger>
+                <Button type="button">
                  <Plus className="ml-2 h-4 w-4" />
                  مشروع جديد
                </Button>

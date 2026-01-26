@@ -2,6 +2,7 @@
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
  import { Button } from "@/components/ui/button";
  import { Badge } from "@/components/ui/badge";
+ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useGitHubAuth } from "@/hooks/useGitHubAuth";
 import { useNavigate } from "react-router-dom";
  import { Separator } from "@/components/ui/separator";
@@ -158,12 +159,24 @@ import { useNavigate } from "react-router-dom";
                        </div>
                      ) : !isConnected ? (
                        <>
+                         <Alert className="mb-3 border-primary/50 bg-primary/10">
+                           <AlertDescription className="text-xs">
+                             💡 إذا كانت هذه أول مرة تربط GitHub، يجب عليك إعداد OAuth Application أولاً
+                           </AlertDescription>
+                         </Alert>
                          <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                            <p className="text-sm text-foreground font-medium mb-2">✨ ربط تلقائي مع الوكيل الذكي</p>
                            <p className="text-xs text-muted-foreground">
                              عند الربط، سيتمكن الوكيل من قراءة وفهم جميع ملفات مشروعك والتطوير عليها مباشرة
                            </p>
                          </div>
+                         <Button 
+                           onClick={() => navigate("/github-setup")}
+                           variant="outline"
+                           className="w-full mb-2"
+                         >
+                           📖 دليل إعداد GitHub OAuth
+                         </Button>
                          <Button 
                            onClick={connectGitHub}
                            disabled={isConnecting}

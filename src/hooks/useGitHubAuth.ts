@@ -1,6 +1,8 @@
  import { useState, useEffect } from "react";
  import { useToast } from "@/hooks/use-toast";
  import { supabase } from "@/integrations/supabase/client";
+
+const SINGLE_USER_EMAIL = "telmahmoud4@gmail.com";
  
  type GitHubRepo = {
    name: string;
@@ -21,9 +23,13 @@
    useEffect(() => {
      const checkAuth = async () => {
      const { data: { user } } = await supabase.auth.getUser();
-     setIsAuthenticated(!!user);
-     if (user) {
+      const allowed = !!user && (user.email ?? "").toLowerCase() === SINGLE_USER_EMAIL;
+      setIsAuthenticated(allowed);
+      if (allowed) {
        await checkGitHubConnection();
+      } else if (user) {
+        // Defensive: if a non-allowed user somehow exists, sign them out.
+        await supabase.auth.signOut();
      }
    };
  
@@ -31,13 +37,18 @@
  
      // Listen to auth state changes
      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-       setIsAuthenticated(!!session?.user);
-       if (session?.user) {
+      const allowed = !!session?.user && (session.user.email ?? "").toLowerCase() === SINGLE_USER_EMAIL;
+      setIsAuthenticated(allowed);
+      if (allowed) {
          await checkGitHubConnection();
        } else {
          setIsConnected(false);
          setGithubUsername(null);
          setRepos([]);
+
+        if (session?.user) {
+          await supabase.auth.signOut();
+        }
        }
      });
  
@@ -162,6 +173,16 @@
        });
        return;
      }
+
+      if ((user.email ?? "").toLowerCase() !== SINGLE_USER_EMAIL) {
+        setIsConnecting(false);
+        toast({
+          variant: "destructive",
+          title: "غير مصرح",
+          description: "الربط بـ GitHub مسموح للحساب الأساسي فقط",
+        });
+        return;
+      }
      
       try {
         // Get GitHub Client ID from edge function

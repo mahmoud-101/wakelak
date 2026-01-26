@@ -1,24 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
- import { Bot, Mail, Lock, User } from "lucide-react";
+import { Bot, Mail, Lock } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Card } from "@/components/ui/card";
- import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+const SINGLE_USER_EMAIL = "telmahmoud4@gmail.com";
  
  const Auth = () => {
    const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, signIn } = useAuth();
   const { toast } = useToast();
-   const [loginEmail, setLoginEmail] = useState("");
+   const [loginEmail, setLoginEmail] = useState(SINGLE_USER_EMAIL);
    const [loginPassword, setLoginPassword] = useState("");
    const [isLoading, setIsLoading] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
+   const [resetEmail, setResetEmail] = useState(SINGLE_USER_EMAIL);
   const [showUpdatePassword, setShowUpdatePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
  
@@ -33,7 +34,7 @@ import { useToast } from "@/hooks/use-toast";
    const handleLogin = async (e: React.FormEvent) => {
      e.preventDefault();
      setIsLoading(true);
-     await signIn(loginEmail, loginPassword);
+     await signIn(SINGLE_USER_EMAIL, loginPassword);
      setIsLoading(false);
    };
  
@@ -57,13 +58,12 @@ import { useToast } from "@/hooks/use-toast";
     e.preventDefault();
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      const { error } = await supabase.auth.resetPasswordForEmail(SINGLE_USER_EMAIL, {
         redirectTo: `${window.location.origin}/auth?reset=true`,
       });
       if (error) throw error;
       toast({ title: "تم!", description: "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني" });
       setShowResetPassword(false);
-      setResetEmail("");
     } catch (error: any) {
       toast({ variant: "destructive", title: "خطأ", description: "فشل إرسال رابط إعادة التعيين" });
     }
@@ -112,11 +112,11 @@ import { useToast } from "@/hooks/use-toast";
                 <Mail className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="email"
-                  placeholder="البريد الإلكتروني"
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
+                   placeholder="البريد الإلكتروني"
+                   value={resetEmail}
+                   onChange={(e) => setResetEmail(e.target.value)}
                   className="pr-10"
-                  required
+                   disabled
                 />
               </div>
             </div>
@@ -143,7 +143,7 @@ import { useToast } from "@/hooks/use-toast";
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   className="pr-10"
-                  required
+                  disabled
                 />
               </div>
             </div>

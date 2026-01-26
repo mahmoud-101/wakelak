@@ -2,6 +2,8 @@
  import { User, Session } from "@supabase/supabase-js";
  import { supabase } from "@/integrations/supabase/client";
  import { useToast } from "@/hooks/use-toast";
+
+const SINGLE_USER_EMAIL = "telmahmoud4@gmail.com";
  
  export function useAuth() {
    const [user, setUser] = useState<User | null>(null);
@@ -63,6 +65,16 @@
    };
  
    const signIn = async (email: string, password: string) => {
+    // Single-user mode: only allow the configured email
+    if (email.trim().toLowerCase() !== SINGLE_USER_EMAIL) {
+      toast({
+        variant: "destructive",
+        title: "غير مصرح",
+        description: "هذا التطبيق خاص بحساب واحد فقط",
+      });
+      return { data: null, error: new Error("Single-user mode: email not allowed") };
+    }
+
      try {
        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
        if (error) throw error;

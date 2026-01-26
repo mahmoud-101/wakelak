@@ -66,3 +66,12 @@ verify_jwt = false
 
 [functions.github-oauth]
 verify_jwt = false
+
+[functions.advanced-ai-agent]
+verify_jwt = false
+
+[functions.github-auto-sync]
+verify_jwt = false
+
+[functions.vercel-deploy]
+verify_jwt = false

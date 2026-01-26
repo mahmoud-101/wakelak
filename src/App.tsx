@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Projects from "./pages/Projects";
 import Database from "./pages/Database";
 import History from "./pages/History";
+import Deploy from "./pages/Deploy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/editor" element={<Editor />} />
           <Route path="/database" element={<Database />} />
           <Route path="/history" element={<History />} />
+          <Route path="/deploy" element={<Deploy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

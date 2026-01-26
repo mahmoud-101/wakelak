@@ -1,6 +1,6 @@
  import { useState, useEffect } from "react";
  import { useNavigate } from "react-router-dom";
-import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, Settings } from "lucide-react";
+import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, Rocket } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -191,9 +191,21 @@ import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, 
                      <Clock className="h-3 w-3" />
                      <span>آخر فتح: {new Date(project.last_opened_at).toLocaleDateString("ar")}</span>
                    </div>
-                   <Button onClick={() => openProject(project)} className="w-full mt-2">
-                     فتح المشروع
-                   </Button>
+                     <div className="flex gap-2 mt-2">
+                       <Button onClick={() => openProject(project)} className="flex-1">
+                         فتح المشروع
+                       </Button>
+                       <Button 
+                         variant="outline" 
+                         size="icon"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           navigate("/deploy", { state: { project } });
+                         }}
+                       >
+                         <Rocket className="h-4 w-4" />
+                       </Button>
+                     </div>
                  </div>
                </CardContent>
              </Card>

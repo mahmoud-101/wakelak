@@ -14,6 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_conversations: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          id: string
+          messages: Json
+          project_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          messages?: Json
+          project_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          messages?: Json
+          project_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deployments: {
+        Row: {
+          build_logs: string | null
+          completed_at: string | null
+          created_at: string | null
+          deployment_url: string | null
+          id: string
+          platform: string
+          project_id: string
+          status: string
+        }
+        Insert: {
+          build_logs?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          deployment_url?: string | null
+          id?: string
+          platform: string
+          project_id: string
+          status?: string
+        }
+        Update: {
+          build_logs?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          deployment_url?: string | null
+          id?: string
+          platform?: string
+          project_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_versions: {
+        Row: {
+          author_id: string
+          commit_message: string | null
+          content: string
+          created_at: string | null
+          file_path: string
+          id: string
+          project_id: string
+        }
+        Insert: {
+          author_id: string
+          commit_message?: string | null
+          content: string
+          created_at?: string | null
+          file_path: string
+          id?: string
+          project_id: string
+        }
+        Update: {
+          author_id?: string
+          commit_message?: string | null
+          content?: string
+          created_at?: string | null
+          file_path?: string
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

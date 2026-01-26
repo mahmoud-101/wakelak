@@ -55,46 +55,42 @@
      }
    }, []);
  
-   const checkGitHubConnection = async () => {
-     const { data: { user } } = await supabase.auth.getUser();
-     if (!user) return;
-     
-     const { data: profile } = await supabase
-       .from("profiles")
-       .select("github_username, github_token, github_connected_at")
-       .eq("id", user.id)
-       .single();
-     
-     if (profile?.github_username && profile?.github_token) {
-       setIsConnected(true);
-       setGithubUsername(profile.github_username);
-       await fetchUserRepos(profile.github_token);
-     }
-   };
- 
-   const fetchUserRepos = async (token: string) => {
-     try {
-       const response = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", {
-         headers: {
-           Authorization: `Bearer ${token}`,
-           Accept: "application/vnd.github.v3+json",
-         },
-       });
-       
-       if (response.ok) {
-         const data = await response.json();
-         setRepos(data.map((r: any) => ({
-           name: r.name,
-           owner: r.owner.login,
-           fullName: r.full_name,
-           defaultBranch: r.default_branch,
-           private: r.private,
-         })));
-       }
-     } catch (error) {
-       console.error("Failed to fetch repos:", error);
-     }
-   };
+  const checkGitHubConnection = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("github_username, github_connected_at")
+      .eq("id", user.id)
+      .single();
+    
+    if (profile?.github_username) {
+      setIsConnected(true);
+      setGithubUsername(profile.github_username);
+      await fetchUserRepos();
+    }
+  };
+
+  const fetchUserRepos = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("github-oauth", {
+        body: { action: "repos" },
+      });
+      
+      if (!error && data?.repos) {
+        setRepos(data.repos.map((r: any) => ({
+          name: r.name,
+          owner: r.owner.login,
+          fullName: r.full_name,
+          defaultBranch: r.default_branch,
+          private: r.private,
+        })));
+      }
+    } catch (error) {
+      console.error("Failed to fetch repos:", error);
+    }
+  };
  
    const handleOAuthCallback = async (code: string, state: string) => {
      setIsConnecting(true);
@@ -110,10 +106,18 @@
          // Store in profiles
          const { data: { user } } = await supabase.auth.getUser();
          if (user) {
+          // Store token in secure_credentials (server-side only)
+          await supabase
+            .from("secure_credentials")
+            .upsert({
+              user_id: user.id,
+              github_token: data.access_token,
+            });
+          
+          // Store non-sensitive data in profiles
            await supabase
              .from("profiles")
              .update({
-               github_token: data.access_token,
                github_username: data.user.login,
                github_connected_at: new Date().toISOString(),
              })
@@ -122,7 +126,7 @@
          
          setIsConnected(true);
          setGithubUsername(data.user.login);
-         await fetchUserRepos(data.access_token);
+        await fetchUserRepos();
          
          toast({
            title: "تم الربط بنجاح! ✓",
@@ -189,10 +193,16 @@
      const { data: { user } } = await supabase.auth.getUser();
      if (!user) return;
      
+    // Remove from secure_credentials
+    await supabase
+      .from("secure_credentials")
+      .delete()
+      .eq("user_id", user.id);
+    
+    // Remove from profiles
      const { error } = await supabase
        .from("profiles")
        .update({
-         github_token: null,
          github_username: null,
          github_connected_at: null,
        })

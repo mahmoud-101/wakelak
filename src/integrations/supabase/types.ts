@@ -176,7 +176,6 @@ export type Database = {
           email: string | null
           full_name: string | null
           github_connected_at: string | null
-          github_token: string | null
           github_username: string | null
           id: string
           updated_at: string | null
@@ -187,7 +186,6 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           github_connected_at?: string | null
-          github_token?: string | null
           github_username?: string | null
           id: string
           updated_at?: string | null
@@ -198,7 +196,6 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           github_connected_at?: string | null
-          github_token?: string | null
           github_username?: string | null
           id?: string
           updated_at?: string | null
@@ -236,6 +233,27 @@ export type Database = {
           id?: string
           last_opened_at?: string | null
           name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      secure_credentials: {
+        Row: {
+          created_at: string | null
+          github_token: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          github_token?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          github_token?: string | null
           updated_at?: string | null
           user_id?: string
         }

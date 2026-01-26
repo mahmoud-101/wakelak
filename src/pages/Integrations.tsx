@@ -2,11 +2,13 @@
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
  import { Button } from "@/components/ui/button";
  import { Badge } from "@/components/ui/badge";
- import { useGitHubAuth } from "@/hooks/useGitHubAuth";
+import { useGitHubAuth } from "@/hooks/useGitHubAuth";
+import { useNavigate } from "react-router-dom";
  import { Separator } from "@/components/ui/separator";
  
  const Integrations = () => {
-   const { connectGitHub, disconnectGitHub, isConnecting, isConnected, githubUsername, repos } = useGitHubAuth();
+   const { connectGitHub, disconnectGitHub, isConnecting, isConnected, githubUsername, repos, isAuthenticated } = useGitHubAuth();
+   const navigate = useNavigate();
    
    const integrations = [
      {
@@ -122,15 +124,15 @@
                      <div>
                        <CardTitle className="text-xl">{integration.name}</CardTitle>
                        {integration.status === "connected" ? (
-                        <Badge className="mt-1 bg-success/20 text-success">
+                         <div className="mt-1 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-success/20 text-success border-transparent">
                            <CheckCircle2 className="ml-1 h-3 w-3" />
                            متصل
-                         </Badge>
+                          </div>
                        ) : (
-                         <Badge variant="outline" className="mt-1">
+                          <div className="mt-1 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-border">
                            <AlertCircle className="ml-1 h-3 w-3" />
                            متاح
-                         </Badge>
+                          </div>
                        )}
                      </div>
                    </div>
@@ -141,7 +143,20 @@
                  {/* GitHub-specific connection UI */}
                  {integration.id === "github" && (
                    <div className="space-y-4">
-                     {!isConnected ? (
+                     {!isAuthenticated ? (
+                       <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                         <p className="text-sm font-medium text-destructive mb-3">⚠️ يجب تسجيل الدخول أولاً</p>
+                         <p className="text-xs text-muted-foreground mb-3">
+                           لربط حسابك بـ GitHub، يجب عليك تسجيل الدخول أو إنشاء حساب جديد
+                         </p>
+                         <Button 
+                           onClick={() => navigate("/auth")}
+                           className="w-full"
+                         >
+                           تسجيل الدخول / إنشاء حساب
+                         </Button>
+                       </div>
+                     ) : !isConnected ? (
                        <>
                          <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                            <p className="text-sm text-foreground font-medium mb-2">✨ ربط تلقائي مع الوكيل الذكي</p>

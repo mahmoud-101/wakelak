@@ -1,14 +1,16 @@
  import { useState } from "react";
- import { Bot, Send, Sparkles } from "lucide-react";
+import { Bot, Send, Sparkles, Link2 } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Textarea } from "@/components/ui/textarea";
  import { Card } from "@/components/ui/card";
  import { useDevChat } from "@/hooks/useDevChat";
  import ReactMarkdown from "react-markdown";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
    const { messages, isLoading, sendMessage } = useDevChat();
    const [input, setInput] = useState("");
+  const navigate = useNavigate();
  
    const handleSend = () => {
      if (!input.trim() || isLoading) return;
@@ -38,6 +40,10 @@ const Index = () => {
           <div className="mr-auto">
             <Sparkles className="h-5 w-5 text-primary animate-pulse" />
           </div>
+          <Button variant="outline" size="sm" onClick={() => navigate("/integrations")}>
+            <Link2 className="ml-2 h-4 w-4" />
+            التكاملات
+          </Button>
         </div>
       </header>
  

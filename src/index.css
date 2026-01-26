@@ -49,6 +49,9 @@
  
      --gradient-primary: linear-gradient(135deg, hsl(200 95% 50%), hsl(200 85% 60%));
      --shadow-glow: 0 0 20px hsl(200 95% 50% / 0.3);
+    
+    --success: 142 76% 36%;
+    --success-foreground: 142 76% 96%;
    }
  
    .dark {
@@ -192,6 +195,9 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --success: 142 70% 45%;
+    --success-foreground: 142 76% 96%;
   }
 }
 

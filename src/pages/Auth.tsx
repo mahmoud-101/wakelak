@@ -1,19 +1,19 @@
- import { useState } from "react";
- import { useNavigate } from "react-router-dom";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
  import { Bot, Mail, Lock, User } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Card } from "@/components/ui/card";
  import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  import { useAuth } from "@/hooks/useAuth";
- import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
  
  const Auth = () => {
    const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
    const { user, signIn, signUp } = useAuth();
+  const { toast } = useToast();
    const [loginEmail, setLoginEmail] = useState("");
    const [loginPassword, setLoginPassword] = useState("");
    const [signupEmail, setSignupEmail] = useState("");
@@ -22,11 +22,16 @@ import { useToast } from "@/hooks/use-toast";
    const [isLoading, setIsLoading] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
-  const { toast } = useToast();
+  const [showUpdatePassword, setShowUpdatePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
  
    useEffect(() => {
      if (user) navigate("/projects");
-   }, [user, navigate]);
+    
+    if (searchParams.get('reset') === 'true') {
+      setShowUpdatePassword(true);
+    }
+  }, [user, navigate, searchParams]);
  
    const handleLogin = async (e: React.FormEvent) => {
      e.preventDefault();
@@ -42,6 +47,22 @@ import { useToast } from "@/hooks/use-toast";
      setIsLoading(false);
    };
  
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast({ title: "تم!", description: "تم تغيير كلمة المرور بنجاح" });
+      setShowUpdatePassword(false);
+      setNewPassword("");
+      navigate("/projects");
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "خطأ", description: "فشل تغيير كلمة المرور" });
+    }
+    setIsLoading(false);
+  };
+
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -69,12 +90,32 @@ import { useToast } from "@/hooks/use-toast";
            <div>
              <h1 className="text-2xl font-bold text-foreground">وكيل التطوير الذكي</h1>
             <p className="text-sm text-muted-foreground">
-              {showResetPassword ? "إعادة تعيين كلمة المرور" : "سجل دخولك للبدء"}
+              {showUpdatePassword ? "تحديث كلمة المرور" : showResetPassword ? "إعادة تعيين كلمة المرور" : "سجل دخولك للبدء"}
             </p>
            </div>
          </div>
  
-        {showResetPassword ? (
+        {showUpdatePassword ? (
+          <form onSubmit={handleUpdatePassword} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <div className="relative">
+                <Lock className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="password"
+                  placeholder="كلمة المرور الجديدة (6 أحرف على الأقل)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="pr-10"
+                  required
+                  minLength={6}
+                />
+              </div>
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "جاري التحديث..." : "تحديث كلمة المرور"}
+            </Button>
+          </form>
+        ) : showResetPassword ? (
           <form onSubmit={handleResetPassword} className="space-y-4 mt-4">
             <div className="space-y-2">
               <div className="relative">

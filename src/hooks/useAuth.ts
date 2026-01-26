@@ -87,5 +87,5 @@
      }
    };
  
-   return { user, session, loading, signUp, signIn, signOut };
+   return { user, session, loading, signUp, signIn, signOut, isAuthenticated: !!user };
  }

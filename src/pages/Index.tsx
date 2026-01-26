@@ -1,16 +1,19 @@
  import { useState } from "react";
-import { Bot, Send, Sparkles, Link2, Code2, LogIn } from "lucide-react";
+ import { Bot, Send, Sparkles, Link2, Code2, LogIn, LogOut, User } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Textarea } from "@/components/ui/textarea";
  import { Card } from "@/components/ui/card";
  import { useDevChat } from "@/hooks/useDevChat";
  import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
+ import { useAuth } from "@/hooks/useAuth";
+ import { Badge } from "@/components/ui/badge";
 
 const Index = () => {
    const { messages, isLoading, sendMessage } = useDevChat();
    const [input, setInput] = useState("");
   const navigate = useNavigate();
+   const { user, isAuthenticated, signOut } = useAuth();
  
    const handleSend = () => {
      if (!input.trim() || isLoading) return;
@@ -51,10 +54,23 @@ const Index = () => {
             <Code2 className="ml-2 h-4 w-4" />
             المحرر
           </Button>
-          <Button variant="default" size="sm" onClick={() => navigate("/auth")}>
-            <LogIn className="ml-2 h-4 w-4" />
-            تسجيل الدخول
-          </Button>
+           {isAuthenticated && user ? (
+             <div className="flex items-center gap-2">
+               <Badge variant="secondary" className="gap-2">
+                 <User className="h-3 w-3" />
+                 {user.email?.split('@')[0]}
+               </Badge>
+               <Button variant="outline" size="sm" onClick={signOut}>
+                 <LogOut className="ml-2 h-4 w-4" />
+                 تسجيل خروج
+               </Button>
+             </div>
+           ) : (
+             <Button variant="default" size="sm" onClick={() => navigate("/auth")}>
+               <LogIn className="ml-2 h-4 w-4" />
+               تسجيل الدخول
+             </Button>
+           )}
         </div>
       </header>
  

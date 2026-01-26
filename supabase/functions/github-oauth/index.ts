@@ -10,7 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
  
    try {
-    const { action, code } = await req.json();
+     const { action, code } = await req.json();
  
       if (action === "get_client_id") {
         // Return GitHub Client ID for OAuth flow
@@ -23,6 +23,33 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
       }
 
      if (action === "exchange") {
+        // Require an authenticated session so we can securely store credentials server-side
+        const authHeader = req.headers.get("Authorization");
+        if (!authHeader) {
+          return new Response(JSON.stringify({ error: "غير مصرح" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const supabaseClient = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+          { global: { headers: { Authorization: authHeader } } }
+        );
+
+        const {
+          data: { user },
+          error: authError,
+        } = await supabaseClient.auth.getUser();
+
+        if (authError || !user) {
+          return new Response(JSON.stringify({ error: "غير مصرح" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
        // Exchange code for access token
        const tokenResp = await fetch("https://github.com/login/oauth/access_token", {
          method: "POST",
@@ -39,7 +66,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  
        const tokenData = await tokenResp.json();
  
-       if (tokenData.access_token) {
+        if (tokenData.access_token) {
          // Get user info
          const userResp = await fetch("https://api.github.com/user", {
            headers: {
@@ -49,11 +76,38 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
          });
  
          const userData = await userResp.json();
+
+          // Persist credentials server-side (more reliable + avoids RLS issues)
+          const { error: credUpsertError } = await supabaseClient
+            .from("secure_credentials")
+            .upsert({
+              user_id: user.id,
+              github_token: tokenData.access_token,
+            });
+
+          if (credUpsertError) {
+            console.error("Failed to store github_token:", credUpsertError);
+            throw new Error("Failed to store credentials");
+          }
+
+          const { error: profileUpdateError } = await supabaseClient
+            .from("profiles")
+            .update({
+              github_username: userData?.login ?? null,
+              github_connected_at: new Date().toISOString(),
+            })
+            .eq("id", user.id);
+
+          if (profileUpdateError) {
+            console.error("Failed to update profile github fields:", profileUpdateError);
+            // Not fatal for token storage; still return success.
+          }
  
          return new Response(
            JSON.stringify({
-             access_token: tokenData.access_token,
-             user: userData,
+              ok: true,
+              github_username: userData?.login ?? null,
+              user: userData,
            }),
            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
          );

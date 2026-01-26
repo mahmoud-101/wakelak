@@ -1,9 +1,13 @@
- import { Github, Rocket, Database, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
+ import { Github, Rocket, Database, ExternalLink, CheckCircle2, AlertCircle, Unlink } from "lucide-react";
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
  import { Button } from "@/components/ui/button";
  import { Badge } from "@/components/ui/badge";
+ import { useGitHubAuth } from "@/hooks/useGitHubAuth";
+ import { Separator } from "@/components/ui/separator";
  
  const Integrations = () => {
+   const { connectGitHub, disconnectGitHub, isConnecting, isConnected, githubUsername, repos } = useGitHubAuth();
+   
    const integrations = [
      {
        id: "github",
@@ -98,7 +102,7 @@
  
          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
            {integrations.map((integration) => (
-             <Card key={integration.id} className="relative overflow-hidden">
+             <Card key={integration.id} className="relative overflow-hidden flex flex-col">
                <div 
                  className="absolute left-0 top-0 h-1 w-full" 
                  style={{ backgroundColor: integration.color }}
@@ -133,7 +137,77 @@
                  </div>
                  <CardDescription className="mt-3">{integration.description}</CardDescription>
                </CardHeader>
-               <CardContent className="space-y-4">
+               <CardContent className="space-y-4 flex-1 flex flex-col">
+                 {/* GitHub-specific connection UI */}
+                 {integration.id === "github" && (
+                   <div className="space-y-4">
+                     {!isConnected ? (
+                       <>
+                         <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                           <p className="text-sm text-foreground font-medium mb-2">✨ ربط تلقائي مع الوكيل الذكي</p>
+                           <p className="text-xs text-muted-foreground">
+                             عند الربط، سيتمكن الوكيل من قراءة وفهم جميع ملفات مشروعك والتطوير عليها مباشرة
+                           </p>
+                         </div>
+                         <Button 
+                           onClick={connectGitHub}
+                           disabled={isConnecting}
+                           className="w-full"
+                         >
+                           <Github className="ml-2 h-4 w-4" />
+                           {isConnecting ? "جاري الربط..." : "ربط GitHub الآن"}
+                         </Button>
+                       </>
+                     ) : (
+                       <>
+                         <div className="space-y-2">
+                           <div className="flex items-center justify-between">
+                             <span className="text-sm font-medium">الحساب:</span>
+                             <Badge variant="secondary" className="gap-2">
+                               <Github className="h-3 w-3" />
+                               @{githubUsername}
+                             </Badge>
+                           </div>
+                           <div className="flex items-center justify-between">
+                             <span className="text-sm font-medium">المستودعات:</span>
+                             <Badge variant="outline">{repos.length}</Badge>
+                           </div>
+                         </div>
+                         
+                         <Separator />
+                         
+                         {repos.length > 0 && (
+                           <div className="space-y-2">
+                             <p className="text-sm font-medium">المستودعات المتاحة للوكيل:</p>
+                             <div className="max-h-32 overflow-y-auto space-y-1">
+                               {repos.slice(0, 8).map((repo) => (
+                                 <div 
+                                   key={repo.fullName}
+                                   className="flex items-center justify-between p-2 rounded-lg bg-muted/50 text-xs"
+                                 >
+                                   <span className="font-mono truncate">{repo.fullName}</span>
+                                   {repo.private && <Badge variant="secondary" className="text-xs shrink-0">خاص</Badge>}
+                                 </div>
+                               ))}
+                             </div>
+                           </div>
+                         )}
+                         
+                         <Button 
+                           onClick={disconnectGitHub}
+                           variant="outline"
+                           size="sm"
+                           className="w-full"
+                         >
+                           <Unlink className="ml-2 h-4 w-4" />
+                           فصل الربط
+                         </Button>
+                         <Separator />
+                       </>
+                     )}
+                   </div>
+                 )}
+                 
                  <div>
                    <h4 className="mb-2 text-sm font-semibold text-foreground">المميزات:</h4>
                    <ul className="space-y-1">

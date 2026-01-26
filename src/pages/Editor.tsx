@@ -1,6 +1,6 @@
  import { useState } from "react";
- import { useNavigate } from "react-router-dom";
- import { ArrowLeft, Save, RefreshCw, Github, FileCode, AlertCircle } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft, Save, RefreshCw, Github, FileCode, AlertCircle, Eye, EyeOff } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Card } from "@/components/ui/card";
@@ -8,15 +8,19 @@
  import { Textarea } from "@/components/ui/textarea";
  import { useGitHub } from "@/hooks/useGitHub";
  import Editor from "@monaco-editor/react";
+import { CodePreview } from "@/components/CodePreview";
  
  const EditorPage = () => {
    const navigate = useNavigate();
+  const location = useLocation();
    const { files, currentFile, isLoading, loadRepository, loadFile, saveFile, fixError } = useGitHub();
-   const [owner, setOwner] = useState("");
-   const [repo, setRepo] = useState("");
-   const [connected, setConnected] = useState(false);
+  const project = location.state?.project;
+  const [owner, setOwner] = useState(project?.github_owner || "");
+  const [repo, setRepo] = useState(project?.github_repo || "");
+  const [connected, setConnected] = useState(!!project?.github_repo);
    const [code, setCode] = useState("");
    const [errorInput, setErrorInput] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
  
    const handleConnect = () => {
      if (owner && repo) {
@@ -72,8 +76,11 @@
        <header className="border-b border-border bg-card/50 backdrop-blur-sm">
          <div className="container mx-auto flex h-16 items-center gap-3 px-4">
            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-             <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5" />
            </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/projects")} className="mr-2">
+            المشاريع
+          </Button>
            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
              <FileCode className="h-6 w-6 text-primary-foreground" />
            </div>
@@ -141,9 +148,14 @@
                    <Button size="sm" onClick={handleSave} disabled={isLoading}>
                      <Save className="ml-2 h-4 w-4" />
                      حفظ
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowPreview(!showPreview)}>
+                    {showPreview ? <EyeOff className="ml-2 h-4 w-4" /> : <Eye className="ml-2 h-4 w-4" />}
+                    {showPreview ? "إخفاء المعاينة" : "معاينة"}
                    </Button>
                  </div>
-                 <div className="flex-1">
+                <div className="flex-1 flex gap-2">
+                  <div className={showPreview ? "flex-1" : "w-full"}>
                    <Editor
                      height="100%"
                      language={getLanguage(currentFile.path)}
@@ -159,6 +171,12 @@
                        tabSize: 2,
                      }}
                    />
+                  </div>
+                  {showPreview && (
+                    <div className="flex-1 border-r border-border">
+                      <CodePreview code={code} language={getLanguage(currentFile.path)} />
+                    </div>
+                  )}
                  </div>
                  <div className="border-t border-border bg-card/50 p-3">
                    <div className="flex gap-2">

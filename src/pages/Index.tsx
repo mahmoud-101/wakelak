@@ -1,5 +1,5 @@
  import { useState } from "react";
-import { Bot, Send, Sparkles, Link2, Code2 } from "lucide-react";
+import { Bot, Send, Sparkles, Link2, Code2, LogIn } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Textarea } from "@/components/ui/textarea";
  import { Card } from "@/components/ui/card";
@@ -47,6 +47,10 @@ const Index = () => {
           <Button variant="outline" size="sm" onClick={() => navigate("/editor")}>
             <Code2 className="ml-2 h-4 w-4" />
             المحرر
+          </Button>
+          <Button variant="default" size="sm" onClick={() => navigate("/auth")}>
+            <LogIn className="ml-2 h-4 w-4" />
+            تسجيل الدخول
           </Button>
         </div>
       </header>

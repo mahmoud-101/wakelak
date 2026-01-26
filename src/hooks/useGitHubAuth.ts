@@ -11,6 +11,21 @@ const SINGLE_USER_EMAIL = "telmahmoud4@gmail.com";
    defaultBranch: string;
    private: boolean;
  };
+
+const INVOKE_TIMEOUT_MS = 15000;
+
+function withTimeout<T>(promise: Promise<T>, label: string, ms = INVOKE_TIMEOUT_MS): Promise<T> {
+  let timeoutId: number | undefined;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error(`Timeout: ${label}`));
+    }, ms);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }) as Promise<T>;
+}
  
  export function useGitHubAuth() {
    const [isConnecting, setIsConnecting] = useState(false);
@@ -85,9 +100,12 @@ const SINGLE_USER_EMAIL = "telmahmoud4@gmail.com";
 
   const fetchUserRepos = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("github-oauth", {
-        body: { action: "repos" },
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("github-oauth", {
+          body: { action: "repos" },
+        }),
+        "github-oauth:repos"
+      );
       
       if (!error && data?.repos) {
         setRepos(data.repos.map((r: any) => ({
@@ -107,9 +125,12 @@ const SINGLE_USER_EMAIL = "telmahmoud4@gmail.com";
      setIsConnecting(true);
      
      try {
-       const { data, error } = await supabase.functions.invoke("github-oauth", {
-         body: { action: "exchange", code },
-       });
+        const { data, error } = await withTimeout(
+          supabase.functions.invoke("github-oauth", {
+            body: { action: "exchange", code },
+          }),
+          "github-oauth:exchange"
+        );
  
        if (error) throw error;
        
@@ -186,9 +207,12 @@ const SINGLE_USER_EMAIL = "telmahmoud4@gmail.com";
      
       try {
         // Get GitHub Client ID from edge function
-        const { data, error } = await supabase.functions.invoke("github-oauth", {
-          body: { action: "get_client_id" },
-        });
+         const { data, error } = await withTimeout(
+           supabase.functions.invoke("github-oauth", {
+             body: { action: "get_client_id" },
+           }),
+           "github-oauth:get_client_id"
+         );
         
         if (error || !data?.client_id) {
           throw new Error("Failed to get GitHub Client ID");
@@ -205,7 +229,12 @@ const SINGLE_USER_EMAIL = "telmahmoud4@gmail.com";
        toast({
          variant: "destructive",
           title: "فشل الربط",
-          description: "حدث خطأ أثناء بدء عملية الربط. حاول مرة أخرى.",
+           description:
+             error instanceof Error
+               ? (error.message.includes("Timeout")
+                   ? "الربط استغرق وقتًا طويلاً بدون استجابة. تأكد من تسجيل الدخول ثم حاول مرة أخرى."
+                   : error.message)
+               : "حدث خطأ أثناء بدء عملية الربط. حاول مرة أخرى.",
        });
      }
    };

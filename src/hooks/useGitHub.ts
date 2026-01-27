@@ -1,4 +1,4 @@
- import { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useEffect } from "react";
  import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,22 +14,36 @@ import { supabase } from "@/integrations/supabase/client";
    const [currentFile, setCurrentFile] = useState<{ path: string; content: string; sha: string } | null>(null);
    const [isLoading, setIsLoading] = useState(false);
    const { toast } = useToast();
- 
-   const GITHUB_SYNC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github-sync`;
-   const FIX_ERRORS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fix-errors`;
-   const AUTH_HEADER = `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`;
+
+  const INVOKE_TIMEOUT_MS = 15000;
+  function withTimeout<T>(promise: Promise<T>, label: string, ms = INVOKE_TIMEOUT_MS): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const id = window.setTimeout(() => reject(new Error(`Timeout: ${label}`)), ms);
+      promise
+        .then((v) => {
+          window.clearTimeout(id);
+          resolve(v);
+        })
+        .catch((e) => {
+          window.clearTimeout(id);
+          reject(e);
+        });
+    });
+  }
  
    const loadRepository = useCallback(async (owner: string, repo: string) => {
      setIsLoading(true);
      try {
-       const resp = await fetch(GITHUB_SYNC_URL, {
-         method: "POST",
-         headers: { "Content-Type": "application/json", Authorization: AUTH_HEADER },
-        body: JSON.stringify({ action: "list", owner, repo }),
-       });
- 
-       if (!resp.ok) throw new Error("فشل تحميل المستودع");
-       const data = await resp.json();
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("github-sync", {
+          body: { action: "list", owner, repo },
+        }),
+        "github-sync:list"
+      );
+
+      if (error) throw error;
+      if (!data?.tree) throw new Error("فشل تحميل المستودع");
+
        setFiles(data.tree.filter((f: FileNode) => f.type === "blob"));
        toast({ title: "تم التحميل", description: `تم تحميل ${data.tree.length} ملف` });
      } catch (e) {
@@ -37,37 +51,42 @@ import { supabase } from "@/integrations/supabase/client";
      } finally {
        setIsLoading(false);
      }
-  }, [toast, GITHUB_SYNC_URL, AUTH_HEADER]);
+ }, [toast]);
  
    const loadFile = useCallback(async (owner: string, repo: string, path: string) => {
      setIsLoading(true);
      try {
-       const resp = await fetch(GITHUB_SYNC_URL, {
-         method: "POST",
-         headers: { "Content-Type": "application/json", Authorization: AUTH_HEADER },
-        body: JSON.stringify({ action: "read", owner, repo, path }),
-       });
- 
-       if (!resp.ok) throw new Error("فشل قراءة الملف");
-       const data = await resp.json();
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("github-sync", {
+          body: { action: "read", owner, repo, path },
+        }),
+        "github-sync:read"
+      );
+
+      if (error) throw error;
+      if (!data?.content || !data?.sha) throw new Error("فشل قراءة الملف");
+
        setCurrentFile({ path, content: data.content, sha: data.sha });
      } catch (e) {
        toast({ variant: "destructive", title: "خطأ", description: e instanceof Error ? e.message : "خطأ غير معروف" });
      } finally {
        setIsLoading(false);
      }
-  }, [toast, GITHUB_SYNC_URL, AUTH_HEADER]);
+ }, [toast]);
  
    const saveFile = useCallback(async (owner: string, repo: string, path: string, content: string) => {
      setIsLoading(true);
      try {
-       const resp = await fetch(GITHUB_SYNC_URL, {
-         method: "POST",
-         headers: { "Content-Type": "application/json", Authorization: AUTH_HEADER },
-        body: JSON.stringify({ action: "write", owner, repo, path, content }),
-       });
- 
-       if (!resp.ok) throw new Error("فشل حفظ الملف");
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("github-sync", {
+          body: { action: "write", owner, repo, path, content },
+        }),
+        "github-sync:write"
+      );
+
+      if (error) throw error;
+      if (!data?.success) throw new Error("فشل حفظ الملف");
+
        toast({ title: "تم الحفظ", description: "تم حفظ التغييرات على GitHub" });
        return true;
      } catch (e) {
@@ -76,19 +95,20 @@ import { supabase } from "@/integrations/supabase/client";
      } finally {
        setIsLoading(false);
      }
-  }, [toast, GITHUB_SYNC_URL, AUTH_HEADER]);
+ }, [toast]);
  
    const fixError = useCallback(async (code: string, error: string, filePath: string) => {
      setIsLoading(true);
      try {
-       const resp = await fetch(FIX_ERRORS_URL, {
-         method: "POST",
-         headers: { "Content-Type": "application/json", Authorization: AUTH_HEADER },
-         body: JSON.stringify({ code, error, filePath }),
-       });
- 
-       if (!resp.ok) throw new Error("فشل إصلاح الخطأ");
-       const data = await resp.json();
+      const { data, error: invokeError } = await withTimeout(
+        supabase.functions.invoke("fix-errors", {
+          body: { code, error, filePath },
+        }),
+        "fix-errors"
+      );
+
+      if (invokeError) throw invokeError;
+      if (!data?.fixedCode) throw new Error("فشل إصلاح الخطأ");
        
        // Extract code from markdown if present
        let fixedCode = data.fixedCode;
@@ -104,7 +124,7 @@ import { supabase } from "@/integrations/supabase/client";
      } finally {
        setIsLoading(false);
      }
-   }, [toast, FIX_ERRORS_URL, AUTH_HEADER]);
+   }, [toast]);
  
    return { files, currentFile, isLoading, loadRepository, loadFile, saveFile, fixError };
  }

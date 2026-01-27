@@ -1,6 +1,6 @@
  import { useState, useEffect } from "react";
  import { useNavigate } from "react-router-dom";
-import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, Rocket } from "lucide-react";
+ import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, Rocket, AlertCircle } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, 
  import { useAuth } from "@/hooks/useAuth";
  import { supabase } from "@/integrations/supabase/client";
  import { useToast } from "@/hooks/use-toast";
+ import { Alert, AlertDescription } from "@/components/ui/alert";
  
  type Project = {
    id: string;
@@ -26,6 +27,7 @@ import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, 
    const [projects, setProjects] = useState<Project[]>([]);
    const [isDialogOpen, setIsDialogOpen] = useState(false);
    const [newProject, setNewProject] = useState({ name: "", description: "", github_repo: "", github_owner: "" });
+    const [isClaiming, setIsClaiming] = useState(false);
  
    useEffect(() => {
      if (!loading && !user) navigate("/auth");
@@ -36,9 +38,11 @@ import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, 
    }, [user]);
  
    const loadProjects = async () => {
+      if (!user) return;
      const { data, error } = await supabase
        .from("projects")
        .select("*")
+        .eq("user_id", user.id)
        .order("last_opened_at", { ascending: false });
  
      if (error) {
@@ -47,6 +51,32 @@ import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, 
        setProjects(data || []);
      }
    };
+
+    const claimProjects = async () => {
+      if (!user) return;
+      setIsClaiming(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("projects-claim", {
+          body: {},
+        });
+        if (error) throw error;
+
+        const claimed = Number(data?.claimed ?? 0);
+        toast({
+          title: "تم",
+          description: claimed > 0 ? `تم استرجاع ${claimed} مشروع` : "لا توجد مشاريع قديمة لاسترجاعها",
+        });
+        await loadProjects();
+      } catch (e) {
+        toast({
+          variant: "destructive",
+          title: "خطأ",
+          description: e instanceof Error ? e.message : "فشل استرجاع المشاريع",
+        });
+      } finally {
+        setIsClaiming(false);
+      }
+    };
  
    const createProject = async () => {
      if (!newProject.name) return;
@@ -156,7 +186,21 @@ import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, 
            </Dialog>
          </div>
  
-         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {projects.length === 0 && user && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <span>
+                  لو عندك مشاريع اتعملت قبل كده ومش ظاهرة دلوقتي، اضغط استرجاع عشان ترتبط بحسابك الحالي.
+                </span>
+                <Button type="button" onClick={claimProjects} disabled={isClaiming}>
+                  {isClaiming ? "جاري الاسترجاع..." : "استرجاع المشاريع"}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
            {projects.map((project) => (
              <Card key={project.id} className="cursor-pointer hover:border-primary transition-colors">
                <CardHeader>

@@ -1,15 +1,11 @@
- import { Github, Rocket, Database, ExternalLink, CheckCircle2, AlertCircle, Unlink } from "lucide-react";
+import { Github, Rocket, Database, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
  import { Button } from "@/components/ui/button";
- import { Badge } from "@/components/ui/badge";
- import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useGitHubAuth } from "@/hooks/useGitHubAuth";
-import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
  import { Separator } from "@/components/ui/separator";
  
  const Integrations = () => {
-   const { connectGitHub, disconnectGitHub, isConnecting, isConnected, githubUsername, repos, isAuthenticated } = useGitHubAuth();
-   const navigate = useNavigate();
+    const ownerEmail = "telmahmoud4@gmail.com";
    
    const integrations = [
      {
@@ -144,95 +140,21 @@ import { useNavigate } from "react-router-dom";
                  {/* GitHub-specific connection UI */}
                  {integration.id === "github" && (
                    <div className="space-y-4">
-                     {!isAuthenticated ? (
-                       <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-                         <p className="text-sm font-medium text-destructive mb-3">⚠️ يجب تسجيل الدخول أولاً</p>
-                         <p className="text-xs text-muted-foreground mb-3">
-                           لربط حسابك بـ GitHub، يجب عليك تسجيل الدخول أو إنشاء حساب جديد
-                         </p>
-                         <Button 
-                           onClick={() => navigate("/auth")}
-                           className="w-full"
-                         >
-                           تسجيل الدخول / إنشاء حساب
-                         </Button>
-                       </div>
-                     ) : !isConnected ? (
-                       <>
-                         <Alert className="mb-3 border-primary/50 bg-primary/10">
-                           <AlertDescription className="text-xs">
-                             💡 إذا كانت هذه أول مرة تربط GitHub، يجب عليك إعداد OAuth Application أولاً
-                           </AlertDescription>
-                         </Alert>
-                         <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                           <p className="text-sm text-foreground font-medium mb-2">✨ ربط تلقائي مع الوكيل الذكي</p>
-                           <p className="text-xs text-muted-foreground">
-                             عند الربط، سيتمكن الوكيل من قراءة وفهم جميع ملفات مشروعك والتطوير عليها مباشرة
-                           </p>
-                         </div>
-                         <Button 
-                           onClick={() => navigate("/github-setup")}
-                           variant="outline"
-                           className="w-full mb-2"
-                         >
-                           📖 دليل إعداد GitHub OAuth
-                         </Button>
-                         <Button 
-                           onClick={connectGitHub}
-                           disabled={isConnecting}
-                           className="w-full"
-                         >
-                           <Github className="ml-2 h-4 w-4" />
-                           {isConnecting ? "جاري الربط..." : "ربط GitHub الآن"}
-                         </Button>
-                       </>
-                     ) : (
-                       <>
-                         <div className="space-y-2">
-                           <div className="flex items-center justify-between">
-                             <span className="text-sm font-medium">الحساب:</span>
-                             <Badge variant="secondary" className="gap-2">
-                               <Github className="h-3 w-3" />
-                               @{githubUsername}
-                             </Badge>
-                           </div>
-                           <div className="flex items-center justify-between">
-                             <span className="text-sm font-medium">المستودعات:</span>
-                             <Badge variant="outline">{repos.length}</Badge>
-                           </div>
-                         </div>
-                         
-                         <Separator />
-                         
-                         {repos.length > 0 && (
-                           <div className="space-y-2">
-                             <p className="text-sm font-medium">المستودعات المتاحة للوكيل:</p>
-                             <div className="max-h-32 overflow-y-auto space-y-1">
-                               {repos.slice(0, 8).map((repo) => (
-                                 <div 
-                                   key={repo.fullName}
-                                   className="flex items-center justify-between p-2 rounded-lg bg-muted/50 text-xs"
-                                 >
-                                   <span className="font-mono truncate">{repo.fullName}</span>
-                                   {repo.private && <Badge variant="secondary" className="text-xs shrink-0">خاص</Badge>}
-                                 </div>
-                               ))}
-                             </div>
-                           </div>
-                         )}
-                         
-                         <Button 
-                           onClick={disconnectGitHub}
-                           variant="outline"
-                           size="sm"
-                           className="w-full"
-                         >
-                           <Unlink className="ml-2 h-4 w-4" />
-                           فصل الربط
-                         </Button>
-                         <Separator />
-                       </>
-                     )}
+                      <Alert className="border-primary/50 bg-primary/10">
+                        <AlertDescription className="text-xs">
+                          ✅ ربط GitHub يتم من داخل Lovable (القائمة العلوية: GitHub → Connect to GitHub).
+                          لا يوجد ربط OAuth داخل هذا المشروع.
+                        </AlertDescription>
+                      </Alert>
+
+                      <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                        <p className="text-sm font-medium text-foreground mb-1">🔒 مشروع خاص</p>
+                        <p className="text-xs text-muted-foreground">
+                          مسموح فقط بالبريد: <span className="font-mono">{ownerEmail}</span> (ممنوع أي إيميل آخر).
+                        </p>
+                      </div>
+
+                      <Separator />
                    </div>
                  )}
                  

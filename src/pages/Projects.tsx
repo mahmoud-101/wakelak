@@ -1,6 +1,6 @@
- import { useState, useEffect } from "react";
+ import { useMemo, useState, useEffect } from "react";
  import { useNavigate } from "react-router-dom";
- import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, Rocket, AlertCircle } from "lucide-react";
+ import { Plus, Folder, LogOut, Github, Clock, Trash2, Database as DatabaseIcon, Rocket, AlertCircle, Link2 } from "lucide-react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -28,6 +28,16 @@
    const [isDialogOpen, setIsDialogOpen] = useState(false);
    const [newProject, setNewProject] = useState({ name: "", description: "", github_repo: "", github_owner: "" });
     const [isClaiming, setIsClaiming] = useState(false);
+
+    const [repoDialogOpen, setRepoDialogOpen] = useState(false);
+    const [repoProject, setRepoProject] = useState<Project | null>(null);
+    const [repoUrl, setRepoUrl] = useState("");
+    const [isSavingRepo, setIsSavingRepo] = useState(false);
+
+    const repoHint = useMemo(
+      () => "مثال: https://github.com/mahmoud-101/wakelak.git أو mahmoud-101/wakelak",
+      []
+    );
  
    useEffect(() => {
      if (!loading && !user) navigate("/auth");
@@ -109,6 +119,89 @@
        loadProjects();
      }
    };
+
+    function parseGitHubRepo(input: string): { owner: string; repo: string } | null {
+      const raw = input.trim();
+      if (!raw) return null;
+
+      // Accept full URLs or owner/repo
+      const normalized = raw
+        .replace(/^git\+/, "")
+        .replace(/^ssh:\/\//, "")
+        .replace(/^git@github\.com:/, "https://github.com/")
+        .replace(/\.git$/i, "");
+
+      // URL form
+      try {
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+          const u = new URL(normalized);
+          if (!/github\.com$/i.test(u.hostname)) return null;
+          const parts = u.pathname.split("/").filter(Boolean);
+          if (parts.length < 2) return null;
+          return { owner: parts[0], repo: parts[1] };
+        }
+      } catch {
+        // fall through
+      }
+
+      const parts = normalized.split("/").filter(Boolean);
+      if (parts.length === 2) return { owner: parts[0], repo: parts[1] };
+      return null;
+    }
+
+    const openRepoDialog = (project: Project) => {
+      setRepoProject(project);
+      const existing = project.github_owner && project.github_repo ? `${project.github_owner}/${project.github_repo}` : "";
+      setRepoUrl(existing);
+      setRepoDialogOpen(true);
+    };
+
+    const saveRepoLink = async () => {
+      if (!user || !repoProject) return;
+      const parsed = parseGitHubRepo(repoUrl);
+      if (!parsed) {
+        toast({
+          variant: "destructive",
+          title: "خطأ",
+          description: "الرابط غير صحيح. استخدم owner/repo أو رابط GitHub كامل.",
+        });
+        return;
+      }
+
+      setIsSavingRepo(true);
+      try {
+        const { error } = await supabase
+          .from("projects")
+          .update({ github_owner: parsed.owner, github_repo: parsed.repo })
+          .eq("id", repoProject.id)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        toast({ title: "تم", description: `تم ربط المشروع بـ ${parsed.owner}/${parsed.repo}` });
+        setRepoDialogOpen(false);
+        await loadProjects();
+
+        // Open editor مباشرة بعد الربط
+        navigate("/editor", {
+          state: {
+            project: {
+              ...repoProject,
+              github_owner: parsed.owner,
+              github_repo: parsed.repo,
+            },
+          },
+        });
+      } catch (e) {
+        toast({
+          variant: "destructive",
+          title: "خطأ",
+          description: e instanceof Error ? e.message : "فشل ربط الريبو",
+        });
+      } finally {
+        setIsSavingRepo(false);
+      }
+    };
  
    const openProject = async (project: Project) => {
      await supabase.from("projects").update({ last_opened_at: new Date().toISOString() }).eq("id", project.id);
@@ -239,6 +332,18 @@
                        <Button onClick={() => openProject(project)} className="flex-1">
                          فتح المشروع
                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openRepoDialog(project);
+                          }}
+                          title="ربط Repo"
+                        >
+                          <Link2 className="h-4 w-4" />
+                        </Button>
                        <Button 
                          variant="outline" 
                          size="icon"
@@ -255,6 +360,32 @@
              </Card>
            ))}
          </div>
+
+          <Dialog open={repoDialogOpen} onOpenChange={setRepoDialogOpen}>
+            <DialogContent dir="rtl">
+              <DialogHeader>
+                <DialogTitle>ربط المشروع بـ GitHub Repo</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="text-sm text-muted-foreground">
+                  المشروع: <span className="font-medium text-foreground">{repoProject?.name ?? ""}</span>
+                </div>
+                <Input
+                  placeholder={repoHint}
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Button type="button" className="flex-1" onClick={saveRepoLink} disabled={isSavingRepo}>
+                    {isSavingRepo ? "جاري الحفظ..." : "حفظ وفتح في المحرر"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setRepoDialogOpen(false)}>
+                    إلغاء
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
  
          {projects.length === 0 && (
            <Card className="p-12 text-center">

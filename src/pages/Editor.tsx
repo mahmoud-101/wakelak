@@ -1,4 +1,4 @@
- import { useState } from "react";
+ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Save, RefreshCw, Github, FileCode, AlertCircle, Eye, EyeOff, History, Terminal as TerminalIcon } from "lucide-react";
  import { Button } from "@/components/ui/button";
@@ -22,6 +22,17 @@ import { CodePreview } from "@/components/CodePreview";
    const [errorInput, setErrorInput] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
+
+   const autoLoadedRef = useRef(false);
+
+   useEffect(() => {
+     // لو المشروع جاي ومعاه repo، حمّل الملفات تلقائياً مرة واحدة
+     if (!connected) return;
+     if (!owner || !repo) return;
+     if (autoLoadedRef.current) return;
+     autoLoadedRef.current = true;
+     loadRepository(owner, repo);
+   }, [connected, owner, repo, loadRepository]);
  
    const handleConnect = () => {
      if (owner && repo) {
@@ -67,9 +78,10 @@ import { CodePreview } from "@/components/CodePreview";
      return langMap[ext || ""] || "plaintext";
    };
  
-   if (currentFile && code !== currentFile.content) {
-     setCode(currentFile.content);
-   }
+    useEffect(() => {
+      if (!currentFile) return;
+      setCode(currentFile.content);
+    }, [currentFile]);
  
    return (
      <div className="flex h-screen flex-col bg-background" dir="rtl">

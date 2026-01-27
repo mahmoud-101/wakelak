@@ -34,21 +34,36 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
       });
     }
 
-    // Fetch GitHub token from secure storage
-    const { data: credentials, error: credError } = await supabaseClient
-      .from("secure_credentials")
-      .select("github_token")
-      .eq("user_id", user.id)
-      .single();
-     
-    if (credError || !credentials?.github_token) {
-      return new Response(JSON.stringify({ error: "يجب ربط حساب GitHub أولاً" }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
+     // Fetch GitHub token
+     // 1) Prefer per-user token from secure storage (if user completed OAuth in-app)
+     // 2) Fallback to project secret GITHUB_TOKEN (so sync works without in-app linking)
+     let token: string | null = null;
+     try {
+       const { data: credentials } = await supabaseClient
+         .from("secure_credentials")
+         .select("github_token")
+         .eq("user_id", user.id)
+         .single();
 
-    const token = credentials.github_token;
+       token = credentials?.github_token ?? null;
+     } catch {
+       // ignore
+     }
+
+     token = token ?? Deno.env.get("GITHUB_TOKEN") ?? null;
+
+     if (!token) {
+       return new Response(
+         JSON.stringify({
+           error:
+             "لا يوجد توكن GitHub متاح. أضف GITHUB_TOKEN كسِرّ في الباك-إند أو اربط GitHub من داخل التطبيق.",
+         }),
+         {
+           status: 400,
+           headers: { ...corsHeaders, "Content-Type": "application/json" },
+         }
+       );
+     }
 
     // Validate and parse input
     const { action, owner, repo, path, content, branch = "main" } = await req.json();

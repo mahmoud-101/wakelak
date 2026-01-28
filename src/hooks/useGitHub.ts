@@ -130,13 +130,10 @@ export function useGitHub() {
       if (!data?.fixedCode) throw new Error("فشل إصلاح الخطأ");
       
       // Extract code from markdown if present
-      let fixedCode = data.fixedCode;
-      const codeMatch = fixedCode.match(/```[w]*
-([sS]*?)
-```/);
-      if (codeMatch) {
-        fixedCode = codeMatch[1];
-      }
+      let fixedCode = data.fixedCode as string;
+      // Matches fenced code blocks: ```lang\n...\n```
+      const codeMatch = fixedCode.match(/```[\w-]*\n([\s\S]*?)\n```/);
+      if (codeMatch?.[1]) fixedCode = codeMatch[1];
       
       return fixedCode;
     } catch (e) {

@@ -34,7 +34,7 @@ import { useEffect } from "react";
     loadGitHubContext();
   }, []);
  
-   const sendMessage = useCallback(async (input: string) => {
+  const sendMessage = useCallback(async (input: string) => {
      const userMsg: Message = { role: "user", content: input };
      setMessages(prev => [...prev, userMsg]);
      setIsLoading(true);
@@ -52,13 +52,29 @@ import { useEffect } from "react";
      };
  
      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+          toast({
+            variant: "destructive",
+            title: "خطأ",
+            description: "يجب تسجيل الدخول أولاً لاستخدام الدردشة.",
+          });
+          setMessages((prev) => prev.slice(0, -1));
+          setIsLoading(false);
+          return;
+        }
+
        const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dev-chat`;
        
        const resp = await fetch(CHAT_URL, {
          method: "POST",
          headers: {
            "Content-Type": "application/json",
-           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            // IMPORTANT: must be the user's JWT, not the anon/publishable key
+            Authorization: `Bearer ${session.access_token}`,
          },
          body: JSON.stringify({ 
            messages: [...messages, userMsg],
@@ -146,7 +162,7 @@ import { useEffect } from "react";
          description: "حدث خطأ أثناء الاتصال بالوكيل الذكي",
        });
      }
-   }, [messages, toast]);
+    }, [messages, toast, githubContext]);
  
    return { messages, isLoading, sendMessage };
  }

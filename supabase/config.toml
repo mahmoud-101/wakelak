@@ -75,3 +75,6 @@ verify_jwt = false
 
 [functions.vercel-deploy]
 verify_jwt = false
+
+[functions.ai-code-agent]
+verify_jwt = false

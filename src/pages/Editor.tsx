@@ -23,6 +23,7 @@ import { useGitHub } from "@/hooks/useGitHub";
 import Editor from "@monaco-editor/react";
 import { CodePreview } from "@/components/CodePreview";
 import { useIsMobile } from "@/hooks/use-mobile";
+import AIAgent from "@/components/AIAgent";
 
 const EditorPage = () => {
   const navigate = useNavigate();
@@ -286,6 +287,20 @@ const EditorPage = () => {
                 )}
 
                 {/* Error Fix Section */}
+                <AIAgent
+                  owner={owner}
+                  repo={repo}
+                  disabled={isLoading || !connected}
+                  onApplyChanges={async (changes) => {
+                    for (const c of changes) {
+                      await saveFile(owner, repo, c.path, c.content);
+                      if (currentFile?.path === c.path) {
+                        setCode(c.content);
+                      }
+                    }
+                  }}
+                />
+
                 <div className="border-t border-border bg-card/50 p-3 shrink-0">
                   <div className="flex gap-2">
                     <Textarea

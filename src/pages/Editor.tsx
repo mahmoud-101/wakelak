@@ -286,39 +286,6 @@ const EditorPage = () => {
                   </div>
                 )}
 
-                {/* Error Fix Section */}
-                <AIAgent
-                  owner={owner}
-                  repo={repo}
-                  disabled={isLoading || !connected}
-                  onApplyChanges={async (changes) => {
-                    for (const c of changes) {
-                      await saveFile(owner, repo, c.path, c.content);
-                      if (currentFile?.path === c.path) {
-                        setCode(c.content);
-                      }
-                    }
-                  }}
-                />
-
-                <div className="border-t border-border bg-card/50 p-3 shrink-0">
-                  <div className="flex gap-2">
-                    <Textarea
-                      placeholder="الصق رسالة الخطأ هنا للإصلاح التلقائي..."
-                      value={errorInput}
-                      onChange={(e) => setErrorInput(e.target.value)}
-                      className={`resize-none flex-1 ${isMobile ? "min-h-[50px] text-sm" : "min-h-[60px]"}`}
-                    />
-                    <Button
-                      onClick={handleFixError}
-                      disabled={!errorInput || isLoading}
-                      size="icon"
-                      className={`shrink-0 ${isMobile ? "h-[50px] w-[50px]" : "h-[60px] w-[60px]"}`}
-                    >
-                      <RefreshCw className="h-5 w-5" />
-                    </Button>
-                  </div>
-                </div>
               </>
             ) : (
               <div className="flex flex-1 items-center justify-center text-muted-foreground p-4">
@@ -331,6 +298,43 @@ const EditorPage = () => {
                       فتح القائمة
                     </Button>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* AI Code Agent (works without selecting a file) */}
+            <AIAgent
+              owner={owner}
+              repo={repo}
+              disabled={isLoading || !connected}
+              onApplyChanges={async (changes) => {
+                for (const c of changes) {
+                  await saveFile(owner, repo, c.path, c.content);
+                  if (currentFile?.path === c.path) {
+                    setCode(c.content);
+                  }
+                }
+              }}
+            />
+
+            {/* Error Fix Section (requires an open file) */}
+            {currentFile && (
+              <div className="border-t border-border bg-card/50 p-3 shrink-0">
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder="الصق رسالة الخطأ هنا للإصلاح التلقائي..."
+                    value={errorInput}
+                    onChange={(e) => setErrorInput(e.target.value)}
+                    className={`resize-none flex-1 ${isMobile ? "min-h-[50px] text-sm" : "min-h-[60px]"}`}
+                  />
+                  <Button
+                    onClick={handleFixError}
+                    disabled={!errorInput || isLoading}
+                    size="icon"
+                    className={`shrink-0 ${isMobile ? "h-[50px] w-[50px]" : "h-[60px] w-[60px]"}`}
+                  >
+                    <RefreshCw className="h-5 w-5" />
+                  </Button>
                 </div>
               </div>
             )}

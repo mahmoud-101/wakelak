@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
+  Bot,
   Save,
   RefreshCw,
   Github,
@@ -24,6 +25,8 @@ import Editor from "@monaco-editor/react";
 import { CodePreview } from "@/components/CodePreview";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AIAgent from "@/components/AIAgent";
+import { DevChatPanel } from "@/components/DevChatPanel";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 
 const EditorPage = () => {
   const navigate = useNavigate();
@@ -40,6 +43,7 @@ const EditorPage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [isDevChatOpen, setIsDevChatOpen] = useState(false);
 
   const autoLoadedRef = useRef(false);
 
@@ -236,6 +240,10 @@ const EditorPage = () => {
                       <TerminalIcon className="ml-2 h-4 w-4" />
                       Terminal
                     </Button>
+                    <Button size="sm" variant={isDevChatOpen ? "secondary" : "outline"} onClick={() => setIsDevChatOpen((v) => !v)}>
+                      <Bot className="ml-2 h-4 w-4" />
+                      الدردشة
+                    </Button>
                   </div>
                 )}
 
@@ -248,34 +256,68 @@ const EditorPage = () => {
                     <Button size="sm" variant="outline" onClick={() => setShowTerminal(!showTerminal)}>
                       <TerminalIcon className="h-4 w-4" />
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => setIsDevChatOpen(true)}>
+                      <Bot className="h-4 w-4" />
+                    </Button>
                   </div>
                 )}
 
                 {/* Editor Area */}
-                <div className={`flex gap-2 ${showTerminal ? "h-[calc(100%-200px)]" : "flex-1"} overflow-hidden`}>
-                  <div className={showPreview && !isMobile ? "flex-1" : "w-full"}>
-                    <Editor
-                      height="100%"
-                      language={getLanguage(currentFile.path)}
-                      value={code}
-                      onChange={(value) => setCode(value || "")}
-                      theme="vs-dark"
-                      options={{
-                        minimap: { enabled: !isMobile },
-                        fontSize: isMobile ? 12 : 14,
-                        lineNumbers: "on",
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        tabSize: 2,
-                        wordWrap: isMobile ? "on" : "off",
-                      }}
-                    />
-                  </div>
-                  {showPreview && !isMobile && (
-                    <div className="flex-1 border-r border-border overflow-auto">
-                      <CodePreview code={code} language={getLanguage(currentFile.path)} />
+                <div
+                  className={
+                    // row-reverse to keep DevChat on the RIGHT in RTL
+                    `flex flex-row-reverse gap-2 ${showTerminal ? "h-[calc(100%-200px)]" : "flex-1"} overflow-hidden`
+                  }
+                >
+                  {/* Dev Chat (desktop only) */}
+                  {!isMobile && isDevChatOpen && (
+                    <div className="w-[360px] shrink-0 border-l border-border bg-card/30">
+                      <DevChatPanel
+                        className="h-full"
+                        filePath={currentFile.path}
+                        fileContent={code}
+                        onApplyChanges={async (changes, message) => {
+                          // Apply each file to GitHub and update editor if it is the open file
+                          for (const c of changes) {
+                            await saveFile(owner, repo, c.path, c.content);
+                            if (currentFile?.path === c.path) {
+                              setCode(c.content);
+                            }
+                          }
+                          // Optional: ignore message for now, but kept for commit message support later
+                          void message;
+                        }}
+                        onClose={() => setIsDevChatOpen(false)}
+                      />
                     </div>
                   )}
+
+                  {/* Main editor/preview */}
+                  <div className="flex min-w-0 flex-1 gap-2 overflow-hidden">
+                    <div className={showPreview && !isMobile ? "flex-1" : "w-full"}>
+                      <Editor
+                        height="100%"
+                        language={getLanguage(currentFile.path)}
+                        value={code}
+                        onChange={(value) => setCode(value || "")}
+                        theme="vs-dark"
+                        options={{
+                          minimap: { enabled: !isMobile },
+                          fontSize: isMobile ? 12 : 14,
+                          lineNumbers: "on",
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          tabSize: 2,
+                          wordWrap: isMobile ? "on" : "off",
+                        }}
+                      />
+                    </div>
+                    {showPreview && !isMobile && (
+                      <div className="flex-1 border-r border-border overflow-auto">
+                        <CodePreview code={code} language={getLanguage(currentFile.path)} />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Terminal */}
@@ -300,6 +342,32 @@ const EditorPage = () => {
                   )}
                 </div>
               </div>
+            )}
+
+            {/* Mobile Dev Chat (Bottom sheet) */}
+            {isMobile && (
+              <Drawer open={isDevChatOpen} onOpenChange={setIsDevChatOpen}>
+                <DrawerContent>
+                  <DrawerHeader>
+                    <DrawerTitle>دردشة المطوّر</DrawerTitle>
+                  </DrawerHeader>
+                  <div className="h-[70vh] px-3 pb-3">
+                    <DevChatPanel
+                      className="h-full"
+                      filePath={currentFile?.path}
+                      fileContent={currentFile ? code : undefined}
+                      onApplyChanges={async (changes) => {
+                        for (const c of changes) {
+                          await saveFile(owner, repo, c.path, c.content);
+                          if (currentFile?.path === c.path) {
+                            setCode(c.content);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </DrawerContent>
+              </Drawer>
             )}
 
             {/* AI Code Agent (works without selecting a file) */}

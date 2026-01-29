@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -12,7 +13,7 @@ serve(async (req) => {
   try {
     // Authenticate user
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "غير مصرح" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -39,7 +40,16 @@ serve(async (req) => {
     }
 
     // Validate input
-    const { messages, githubContext } = await req.json();
+    const body = (await req.json()) as unknown;
+    const payload = (body && typeof body === "object" ? body : {}) as {
+      messages?: unknown;
+      githubContext?: unknown;
+      fileContext?: unknown;
+    };
+
+    const messages = payload.messages;
+    const githubContext = payload.githubContext as any;
+    const fileContext = payload.fileContext as any;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "يجب إرسال رسائل صحيحة" }), {
@@ -56,53 +66,62 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(JSON.stringify({ error: "إعدادات الذكاء الصناعي غير مكتملة" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    let systemPrompt = `أنت مساعد تطوير ذكي متخصص في تطوير مشاريع التجارة الإلكترونية. مهمتك هي:
+    let systemPrompt = `أنت مساعد تطوير لتطبيق React/TypeScript.
 
-1. **مساعدة المطورين في كتابة الكود**: 
-   - تقديم أمثلة واضحة للكود بلغات مثل TypeScript, React, JavaScript
-   - شرح أفضل الممارسات في التطوير
-   - اقتراح حلول للمشاكل البرمجية
+قواعد الرد:
+1) اشرح أولاً بشكل مختصر وواضح.
+2) ثم اكتب الكود/الخطوات.
+3) عند اقتراح تعديل ملفات، ضع في نهاية الرد بلوك واحد فقط داخل \`\`\`apply\`\`\` بصيغة JSON تحتوي message و changes[] (path + content).
+4) لا تضع أي أسرار أو مفاتيح في الكود.
 
-2. **تحسين الأداء والجودة**:
-   - اقتراح طرق لتحسين أداء التطبيق
-   - مراجعة الكود وتقديم ملاحظات بناءة
-   - تحديد الأخطاء المحتملة وكيفية تجنبها
+هدفك: اكتشاف الأخطاء والتحسينات واقتراحها، ثم توفير تغييرات قابلة للتطبيق عند طلب المستخدم.
 
-3. **دعم التجارة الإلكترونية**:
-   - مساعدة في بناء ميزات مثل سلة التسوق، الدفع، المنتجات
-   - اقتراح حلول لإدارة المخزون والطلبات
-   - تحسين تجربة المستخدم في المتاجر الإلكترونية
+----
 
-4. **دعم التكاملات مع المنصات**:
-   - شرح كيفية ربط المشروع بـ GitHub للتحكم بالإصدارات
-   - مساعدة في نشر المشروع على Vercel
-   - إرشاد حول استخدام Lovable Cloud (قاعدة البيانات، المصادقة، Edge Functions)
-   - تقديم أمثلة عملية لاستخدام هذه التكاملات
+ملاحظة: واجهة العميل ستعرض محتوى ردّك كـ Markdown.`;
 
-5. **التواصل بالعربية**: 
-   - الرد دائماً باللغة العربية الفصحى الواضحة
-   - استخدام مصطلحات تقنية دقيقة مع الشرح عند الحاجة
-   - تنسيق الأكواد بشكل منظم وسهل القراءة
+    // File context (optional)
+    if (fileContext && typeof fileContext === "object") {
+      const fc = fileContext as { path?: unknown; content?: unknown };
+      if (typeof fc.path === "string" && typeof fc.content === "string") {
+        const safeContent = fc.content.slice(0, 12000);
+        systemPrompt += `
 
-**معلومات مهمة عن التكاملات:**
-- GitHub: مزامنة ثنائية الاتجاه، دعم Branches والـ Pull Requests
-- Vercel: نشر تلقائي، Preview deployments، CDN عالمي
-- Lovable Cloud: PostgreSQL، Authentication، Edge Functions، Storage
+**سياق الملف الحالي:**
+- path: ${fc.path}
 
-قدم إجابات واضحة ومفيدة ومباشرة. استخدم أمثلة عملية عند الشرح. عندما يسأل المستخدم عن التكاملات، وجهه لصفحة التكاملات للحصول على معلومات تفصيلية.`;
+**محتوى مختصر (قد يكون مقطوعاً):**
+\`\`\`tsx
+${safeContent}
+\`\`\``;
+      }
+    }
 
     // إضافة سياق GitHub إذا كان متصلاً
     if (githubContext?.connected) {
       systemPrompt += `
 
 **معلومات GitHub:**
-- المستخدم متصل بـ GitHub باسم: @${githubContext.username}
-- يمكنك الوصول لملفات المشروع عبر GitHub API
-- عند طلب التعديل على الكود، يمكنك قراءة الملفات الحالية وفهمها
-- استخدم هذا السياق لتقديم إجابات أكثر دقة ومخصصة للمشروع`;
+- المستخدم متصل بـ GitHub باسم: @${githubContext.username ?? ""}
+- عند اقتراح تغييرات، استخدم paths حقيقية داخل المشروع.`;
     }
+
+    // Backward compatibility: keep some of the older guidance
+    systemPrompt += `
+
+إرشادات إضافية:
+- التزم بـ TypeScript strict.
+- استخدم shadcn/ui وTailwind بشكل متجاوب.
+- تجنب إضافة Dependencies جديدة.
+- اذكر المخاطر/البدائل عند وجود أكثر من حل.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -124,9 +143,9 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "يجب إضافة رصيد لحساب Lovable AI الخاص بك." }), {
-          status: 402,
+      if (response.status === 401) {
+        return new Response(JSON.stringify({ error: "غير مصرح" }), {
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
-  Bot,
   Save,
   RefreshCw,
   Github,
@@ -14,6 +13,7 @@ import {
   Terminal as TerminalIcon,
   Menu,
   X,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +24,10 @@ import { useGitHub } from "@/hooks/useGitHub";
 import Editor from "@monaco-editor/react";
 import { CodePreview } from "@/components/CodePreview";
 import { useIsMobile } from "@/hooks/use-mobile";
-import AIAgent from "@/components/AIAgent";
 import { DevChatPanel } from "@/components/DevChatPanel";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const EditorPage = () => {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ const EditorPage = () => {
   const { files, currentFile, isLoading, loadRepository, loadFile, saveFile, fixError } = useGitHub();
   const project = location.state?.project;
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const [owner, setOwner] = useState(project?.github_owner || "");
   const [repo, setRepo] = useState(project?.github_repo || "");
@@ -44,6 +46,8 @@ const EditorPage = () => {
   const [showTerminal, setShowTerminal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [isDevChatOpen, setIsDevChatOpen] = useState(false);
+  const [projectContext, setProjectContext] = useState<string>("");
+  const projectContextLoadedRef = useRef(false);
 
   const autoLoadedRef = useRef(false);
 
@@ -54,6 +58,67 @@ const EditorPage = () => {
     autoLoadedRef.current = true;
     loadRepository(owner, repo);
   }, [connected, owner, repo, loadRepository]);
+
+  // Build a one-time project context (list + partial contents) for smarter Dev Chat.
+  useEffect(() => {
+    if (!connected || !owner || !repo) return;
+    if (!files.length) return;
+    if (projectContextLoadedRef.current) return;
+    projectContextLoadedRef.current = true;
+
+    const MAX_TOTAL_CHARS = 90000;
+    const MAX_FILE_CHARS = 6000;
+    const MAX_FILES_TO_READ = 120;
+
+    const buildContext = async () => {
+      try {
+        // 1) Always include full file list (cheap + reliable)
+        const sorted = [...files]
+          .filter((f) => f.type === "blob")
+          .map((f) => f.path)
+          .sort((a, b) => a.localeCompare(b));
+
+        let ctx = `PROJECT: ${owner}/${repo}\nFILES (${sorted.length}):\n${sorted.join("\n")}\n`;
+
+        // 2) Read file contents with a small concurrency limit until reaching the cap
+        const paths = sorted.slice(0, MAX_FILES_TO_READ);
+        let total = ctx.length;
+        const concurrency = 5;
+        let cursor = 0;
+
+        const runWorker = async () => {
+          while (cursor < paths.length && total < MAX_TOTAL_CHARS) {
+            const idx = cursor++;
+            const path = paths[idx];
+            try {
+              const { data, error } = await supabase.functions.invoke("github-sync", {
+                body: { action: "read", owner, repo, path },
+              });
+              if (error) continue;
+              const content = typeof data?.content === "string" ? data.content : "";
+              if (!content) continue;
+
+              const chunk = `\n\n---\nPATH: ${path}\n\n\`\`\`\n${content.slice(0, MAX_FILE_CHARS)}\n\`\`\`\n`;
+              if (total + chunk.length > MAX_TOTAL_CHARS) break;
+              ctx += chunk;
+              total += chunk.length;
+            } catch {
+              // ignore per-file errors
+            }
+          }
+        };
+
+        await Promise.all(Array.from({ length: concurrency }, () => runWorker()));
+        setProjectContext(ctx);
+      } catch (e) {
+        console.error(e);
+        toast({ variant: "destructive", title: "خطأ", description: "تعذر تجهيز سياق المشروع للدردشة" });
+        setProjectContext("");
+      }
+    };
+
+    void buildContext();
+  }, [connected, owner, repo, files, toast]);
 
   const handleConnect = () => {
     if (owner && repo) {
@@ -241,7 +306,7 @@ const EditorPage = () => {
                       Terminal
                     </Button>
                     <Button size="sm" variant={isDevChatOpen ? "secondary" : "outline"} onClick={() => setIsDevChatOpen((v) => !v)}>
-                      <Bot className="ml-2 h-4 w-4" />
+                      <MessageCircle className="ml-2 h-4 w-4" />
                       الدردشة
                     </Button>
                   </div>
@@ -250,14 +315,8 @@ const EditorPage = () => {
                 {/* Mobile Toolbar */}
                 {isMobile && (
                   <div className="flex items-center gap-1 p-2 border-b border-border bg-card/50 shrink-0 overflow-x-auto">
-                    <Button size="sm" variant="outline" onClick={() => setShowPreview(!showPreview)}>
-                      {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setShowTerminal(!showTerminal)}>
-                      <TerminalIcon className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setIsDevChatOpen(true)}>
-                      <Bot className="h-4 w-4" />
+                    <Button size="sm" variant="outline" onClick={() => setIsDevChatOpen(true)} aria-label="فتح الدردشة">
+                      <MessageCircle className="h-4 w-4" />
                     </Button>
                   </div>
                 )}
@@ -274,8 +333,12 @@ const EditorPage = () => {
                     <div className="w-[360px] shrink-0 border-l border-border bg-card/30">
                       <DevChatPanel
                         className="h-full"
-                        filePath={currentFile.path}
-                        fileContent={code}
+                        filePath={currentFile?.path ? `PROJECT+FILE: ${currentFile.path}` : `PROJECT: ${owner}/${repo}`}
+                        fileContent={
+                          currentFile
+                            ? `${projectContext}\n\n---\nCURRENT FILE:\nPATH: ${currentFile.path}\n\n\`\`\`tsx\n${code}\n\`\`\``
+                            : projectContext
+                        }
                         onApplyChanges={async (changes, message) => {
                           // Apply each file to GitHub and update editor if it is the open file
                           for (const c of changes) {
@@ -354,8 +417,12 @@ const EditorPage = () => {
                   <div className="h-[70vh] px-3 pb-3">
                     <DevChatPanel
                       className="h-full"
-                      filePath={currentFile?.path}
-                      fileContent={currentFile ? code : undefined}
+                      filePath={currentFile?.path ? `PROJECT+FILE: ${currentFile.path}` : `PROJECT: ${owner}/${repo}`}
+                      fileContent={
+                        currentFile
+                          ? `${projectContext}\n\n---\nCURRENT FILE:\nPATH: ${currentFile.path}\n\n\`\`\`tsx\n${code}\n\`\`\``
+                          : projectContext
+                      }
                       onApplyChanges={async (changes) => {
                         for (const c of changes) {
                           await saveFile(owner, repo, c.path, c.content);
@@ -369,21 +436,6 @@ const EditorPage = () => {
                 </DrawerContent>
               </Drawer>
             )}
-
-            {/* AI Code Agent (works without selecting a file) */}
-            <AIAgent
-              owner={owner}
-              repo={repo}
-              disabled={isLoading || !connected}
-              onApplyChanges={async (changes) => {
-                for (const c of changes) {
-                  await saveFile(owner, repo, c.path, c.content);
-                  if (currentFile?.path === c.path) {
-                    setCode(c.content);
-                  }
-                }
-              }}
-            />
 
             {/* Error Fix Section (requires an open file) */}
             {currentFile && (

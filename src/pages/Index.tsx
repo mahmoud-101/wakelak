@@ -1,34 +1,60 @@
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Rocket, Shield, Zap } from 'lucide-react';
 
-export default function Index() {
-  const navigate = useNavigate();
-
+const Index = () => {
   return (
-    <main className="min-h-screen bg-background" dir="rtl">
-      <div className="container mx-auto flex min-h-screen items-center justify-center px-4 py-10">
-        <Card className="w-full max-w-xl p-6">
-          <header className="space-y-2">
-            <h1 className="text-xl font-bold text-foreground">Wakelak — محرر + دردشة مطوّر</h1>
-            <p className="text-sm text-muted-foreground">
-              افتح المشاريع، ثم ادخل للمحرر واستخدم “دردشة المطوّر” لمراجعة المشروع واقتراح تعديلات قابلة للتطبيق.
-            </p>
-          </header>
+    <div className="min-h-screen bg-slate-50" dir="rtl">
+      {/* Hero Section */}
+      <header className="py-20 px-4 text-center bg-white border-b">
+        <h1 className="text-4xl font-bold text-slate-900 mb-4">
+          أهلاً بك في تطبيق واكلك (Wakelak)
+        </h1>
+        <p className="text-xl text-slate-600 mb-8">
+          الوكيل الذكي لتطوير تطبيقاتك بسرعة الصاروخ 🚀
+        </p>
+        <div className="flex justify-center gap-4">
+          <Button size="lg" className="font-bold">ابدأ الآن</Button>
+          <Button size="lg" variant="outline">تعرف علينا</Button>
+        </div>
+      </header>
 
-          <section className="mt-6 flex flex-col gap-3">
-            <Button onClick={() => navigate("/projects")} className="w-full">
-              فتح المشاريع
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/integrations")} className="w-full">
-              التكاملات والإعدادات
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/auth")} className="w-full">
-              تسجيل الدخول
-            </Button>
-          </section>
-        </Card>
-      </div>
-    </main>
+      {/* Features Section */}
+      <main className="max-w-6xl mx-auto py-16 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <Card className="text-center">
+            <CardHeader>
+              <Zap className="w-12 h-12 mx-auto text-yellow-500 mb-2" />
+              <CardTitle>سرعة فائقة</CardTitle>
+            </CardHeader>
+            <CardContent>
+              بناء واجهات احترافية في ثواني باستخدام React و Tailwind.
+            </CardContent>
+          </Card>
+
+          <Card className="text-center">
+            <CardHeader>
+              <Shield className="w-12 h-12 mx-auto text-blue-500 mb-2" />
+              <CardTitle>أمان تام</CardTitle>
+            </CardHeader>
+            <CardContent>
+              ربط مباشر مع Supabase مع تفعيل سياسات الأمان RLS.
+            </CardContent>
+          </Card>
+
+          <Card className="text-center">
+            <CardHeader>
+              <Rocket className="w-12 h-12 mx-auto text-purple-500 mb-2" />
+              <CardTitle>جاهز للنشر</CardTitle>
+            </CardHeader>
+            <CardContent>
+              دعم كامل لـ GitHub و Vercel للنشر بضغطة زر واحدة.
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
   );
-}
+};
+
+export default Index;
